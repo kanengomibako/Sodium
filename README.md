@@ -6,12 +6,12 @@ STM32マイコンを搭載した、プログラミング可能なデジタルエ
 
 #### 別途必要なもの
 - DC9V（センターマイナス）出力のACアダプターで、0.3A以上の電流出力が可能なもの
-- PC（Windows、Mac、Linux いずれも可）
+- PC（Windows、macOS、Linux いずれも可、64bit推奨）<br/>※ 32bit環境では使用できる開発ソフトが限られます。
 - STM32対応のデバッガー（プログラム書き込みやデバッグを行う機器）<br/>
 	→ [ST-LINK/V2](https://www.st.com/ja/development-tools/st-link-v2.html)、[STM32 Nucleo Board](https://www.st.com/ja/evaluation-tools/stm32-nucleo-boards.html) 等
 - PCとデバッガーを接続するUSBケーブル
 - デバッガーとSodium本体を接続するケーブル<br/>
-	→[コネクタ付コード 3P](https://akizukidenshi.com/catalog/g/gC-15384/) 等
+	→ [コネクタ付コード 3P](https://akizukidenshi.com/catalog/g/gC-15384/) 等
 
 
 
@@ -38,7 +38,7 @@ STM32マイコンを搭載した、プログラミング可能なデジタルエ
 | コントロール | 押しボタンスイッチ×4　フットスイッチ×1 |
 | ディスプレイ | 有機ELディスプレイ　モノクロ128×64ドット |
 | インジケーター | 3色LED（直径5mm） |
-| 接続端子 | INPUT端子　OUTPUT端子　DC入力端子<br/>Serial Wire Debug (SWD)接続ピン |
+| 接続端子 | INPUT端子　OUTPUT端子　電源入力端子<br/>Serial Wire Debug (SWD)接続ピン |
 | 消費電流 | 150 mA |
 | 外形寸法 | 幅 73 mm × 奥行 107 mm × 高さ 48 mm<br/>（フットスイッチ部を除いた高さ 35 mm） |
 | 質量 | 240 g |
