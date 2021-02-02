@@ -4,10 +4,10 @@
 /* 各定数設定 --------------------------*/
 
 // ペダル名称表示
-#define PEDAL_NAME "  Sodium v0.1test "
+#define PEDAL_NAME "  Sodium v0.5test "
 
-// ブロックサイズ 偶数を指定（実際は半数ずつ処理している）
-#define BLOCK_SIZE 32
+// ブロックサイズ まとめて処理を行う数
+#define BLOCK_SIZE 16
 
 // 円周率
 #define PI 3.14159265359f
