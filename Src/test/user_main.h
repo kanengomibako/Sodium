@@ -4,7 +4,7 @@
 /* 各定数設定 --------------------------*/
 
 // ペダル名称表示
-#define PEDAL_NAME "  Sodium v0.5test "
+#define PEDAL_NAME "  Sodium v0.6test "
 
 // ブロックサイズ まとめて処理を行う数
 #define BLOCK_SIZE 16
