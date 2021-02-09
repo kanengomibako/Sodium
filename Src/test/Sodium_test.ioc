@@ -1,6 +1,7 @@
 #MicroXplorer Configuration settings - do not modify
+CORTEX_M7.ART_ACCLERATOR_ENABLE=1
 CORTEX_M7.CPU_DCache=Enabled
-CORTEX_M7.IPParameters=CPU_DCache
+CORTEX_M7.IPParameters=CPU_DCache,ART_ACCLERATOR_ENABLE
 Dma.Request0=SPI2_TX
 Dma.Request1=SPI3_RX
 Dma.RequestsNb=2
