@@ -65,7 +65,7 @@ static void MX_I2S3_Init(void);
 
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
-#include "user_main.hpp"
+#include "user_main.h"
 
 /* USER CODE END 0 */
 
@@ -106,6 +106,7 @@ int main(void)
   MX_I2S3_Init();
   /* USER CODE BEGIN 2 */
   mainInit();
+
   /* USER CODE END 2 */
 
   /* Infinite loop */

@@ -128,7 +128,7 @@ public:
 
   	  fxL[i] = param[LEVEL] * lpfTreble.process(fxL[i]); // LEVEL, TREBLE
 
-      xL[i] = bypass.process(xL[i], fxL[i], sw[4]);
+      xL[i] = bypass.process(xL[i], fxL[i], fxOn);
     }
   }
 

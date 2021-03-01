@@ -1,5 +1,5 @@
 #include "common.h"
-#include "user_main.hpp"
+#include "user_main.h"
 #include "main.h"
 #include "ssd1306.hpp"
 #include "fx.hpp"
@@ -11,7 +11,7 @@ extern I2S_HandleTypeDef hi2s3;
 int32_t RxBuffer[BLOCK_SIZE*4] = {}; // 音声信号受信バッファ配列 Lch前半 Lch後半 Rch前半 Rch後半
 int32_t TxBuffer[BLOCK_SIZE*4] = {}; // 音声信号送信バッファ配列
 
-bool sw[10] = {}; // スイッチオン・オフ状態 0→左上 1→左下 2→右上 3→右下 4→フットスイッチ 5～9不使用
+bool fxOn = false; // エフェクトオン・オフ状態
 uint32_t callbackCount = 0; // I2Sの割り込みごとにカウントアップ タイマとして利用
 
 uint32_t cpuUsageCycleMax[MAX_FX_NUM] = {}; // CPU使用サイクル数 各エフェクトごとに最大値を記録
@@ -39,7 +39,7 @@ int8_t fxChangeFlag = 0; // エフェクト種類変更フラグ 次エフェク
 int16_t fxAllData[MAX_FX_NUM][20] = {}; // 全てのエフェクトパラメータデータ配列
 
 uint8_t cursorPosition = 0; // パラメータ選択カーソル位置 0 ～ 2
-string statusStr = ""; // ステータス表示文字列
+string statusStr = PEDAL_NAME; // ステータス表示文字列
 
 uint8_t screenMode = 0; // 画面モード 0:通常画面 1:未定 2:未定
 
@@ -174,11 +174,11 @@ void mainLoop() // <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<メインループ
   uint8_t r = (fxColorList[fxNum] >> 8) & 0b0000000011111000; // RGB565を変換 PWMで色を制御する場合使えるかも
   uint8_t g = (fxColorList[fxNum] >> 3) & 0b0000000011111100;
   uint8_t b = (fxColorList[fxNum] << 3) & 0b0000000011111000;
-  if (r && sw[4]) HAL_GPIO_WritePin(LED_RED_GPIO_Port, LED_RED_Pin, GPIO_PIN_SET);
+  if (r && fxOn) HAL_GPIO_WritePin(LED_RED_GPIO_Port, LED_RED_Pin, GPIO_PIN_SET);
   else HAL_GPIO_WritePin(LED_RED_GPIO_Port, LED_RED_Pin, GPIO_PIN_RESET);
-  if (g && sw[4]) HAL_GPIO_WritePin(LED_GREEN_GPIO_Port, LED_GREEN_Pin, GPIO_PIN_SET);
+  if (g && fxOn) HAL_GPIO_WritePin(LED_GREEN_GPIO_Port, LED_GREEN_Pin, GPIO_PIN_SET);
   else HAL_GPIO_WritePin(LED_GREEN_GPIO_Port, LED_GREEN_Pin, GPIO_PIN_RESET);
-  if (b && sw[4]) HAL_GPIO_WritePin(LED_BLUE_GPIO_Port, LED_BLUE_Pin, GPIO_PIN_SET);
+  if (b && fxOn) HAL_GPIO_WritePin(LED_BLUE_GPIO_Port, LED_BLUE_Pin, GPIO_PIN_SET);
   else HAL_GPIO_WritePin(LED_BLUE_GPIO_Port, LED_BLUE_Pin, GPIO_PIN_RESET);
 
 }
@@ -314,7 +314,7 @@ void swProcess(uint8_t num) // <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<スイ
       {
         if (swCount[num] >= shortPushCount && swCount[num] < longPushCount) // 短押し 離した時の処理
         {
-          sw[num] = !sw[num];
+          fxOn = !fxOn;
         }
         swCount[num] = 0;
       }

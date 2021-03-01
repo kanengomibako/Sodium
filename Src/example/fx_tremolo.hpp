@@ -110,7 +110,7 @@ public:
       gain = gain * param[DEPTH]; // gain -10 ～ 10 dB
 
       fxL[i] = param[LEVEL] * xL[i] * dbToGain(gain); // LEVEL
-      xL[i] = bypass.process(xL[i], fxL[i], sw[4]);
+      xL[i] = bypass.process(xL[i], fxL[i], fxOn);
     }
   }
 

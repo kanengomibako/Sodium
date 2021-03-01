@@ -29,10 +29,10 @@ using std::string;
 #define STATUS_DISP_MSEC 1000
 
 // 最大エフェクト数
-#define MAX_FX_NUM 3
+#define MAX_FX_NUM 6
 
 // エフェクト番号割当
-enum FXtype {OD, DD, TR};
+enum FXtype {OD, DD, TR, CE, PH, RV};
 
 // 最小値、最大値、絶対値関数
 #ifndef min
@@ -51,7 +51,7 @@ enum FXtype {OD, DD, TR};
 /* グローバル変数 --------------------------*/
 
 // user_main.cpp で定義
-extern bool sw[];
+extern bool fxOn;
 extern int16_t fxParam[];
 extern int16_t fxParamMax[];
 extern int16_t fxParamMin[];

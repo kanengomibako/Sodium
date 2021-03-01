@@ -3,7 +3,7 @@
 
 #include "common.h"
 
-/* ディレイバッファ ----------------------------------------*/
+/* ディレイバッファ 16ビット-------------------------------------*/
 class delayBuf
 {
 private:
@@ -27,7 +27,6 @@ public:
     // メモリ確保失敗検知 未実装
     // std::bad_alloc を使う場合は -fexceptions コンパイルオプションが必要
 
-    erase();
     maxDelaySample = (uint32_t)(SAMPLING_FREQ * maxDelayTime / 1000.0f); // 最大サンプル数計算
     delayArray = new int16_t[maxDelaySample]; // バッファ配列メモリ確保
     for (uint32_t i = 0; i < maxDelaySample; i++) delayArray[i] = 0; // 配列0埋め

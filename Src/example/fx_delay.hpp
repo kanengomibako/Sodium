@@ -54,7 +54,7 @@ public:
 
   virtual void deinit()
   {
-    del1.set(1.0f);
+    del1.erase();
   }
 
   virtual void setParamStr(uint8_t paramIndex)
@@ -123,10 +123,10 @@ public:
       fxL[i] = lpf2ndTone.process(fxL[i]); // ディレイ音のTONE（ハイカット）
 
       // ディレイ音と原音をディレイバッファに書き込み、原音はエフェクトオン時のみ書き込む
-      del1.write(bypassIn.process(0.0f, xL[i], sw[4]) + param[FBACK] * fxL[i]);
+      del1.write(bypassIn.process(0.0f, xL[i], fxOn) + param[FBACK] * fxL[i]);
 
       fxL[i] = param[OUTPUT] * (xL[i] + fxL[i] * param[ELEVEL]); // マスターボリューム ディレイ音レベル
-      xL[i] = bypassOut.process(xL[i], fxL[i], sw[4]);
+      xL[i] = bypassOut.process(xL[i], fxL[i], fxOn);
     }
   }
 };
