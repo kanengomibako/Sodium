@@ -5,28 +5,28 @@
 #include "table_dbToGain.h"
 #include <cmath>
 
-float gainToDb(float x) // 使用範囲0.00001(-100dB)～1(0dB) 最大誤差0.016dB
+inline float gainToDb(float x) // 使用範囲0.00001(-100dB)～1(0dB) 最大誤差0.016dB
 {
   x = sqrtf(sqrtf(sqrtf(sqrtf(sqrtf(x)))));
   return - 559.57399f + 995.83468f * x
          - 591.85129f * x * x + 155.60596f * x * x * x;
 }
 
-float dbToGain(float x) // 使用範囲±128dB 最大誤差0.015dB
+inline float dbToGain(float x) // 使用範囲±128dB 最大誤差0.015dB
 {
   return dbToGainTable[(uint8_t)(x + 128.0f)]
          + (dbToGainTable[(uint8_t)(x + 128.0f) + 1] - dbToGainTable[(uint8_t)(x + 128.0f)])
            * ((x + 128.0f) - (float)((uint8_t)(x + 128.0f)));
 }
 
-float logPot(uint16_t pot, float dBmin, float dBmax)
+inline float logPot(uint16_t pot, float dBmin, float dBmax)
 {
   // パラメータの値0～100を最小dB～最大dB倍率へ割り当てる
   float p = (dBmax - dBmin) * (float)pot * 0.01f + dBmin;
   return dbToGain(p); // dBから倍率へ変換
 }
 
-float mixPot(uint16_t pot, float dBmin)
+inline float mixPot(uint16_t pot, float dBmin)
 {
   // パラメータの値0～100をMIX倍率へ割り当てる dBminは-6以下の負の値
   float a = (-6.0f - dBmin) * 0.02f; // dB増加の傾きを計算

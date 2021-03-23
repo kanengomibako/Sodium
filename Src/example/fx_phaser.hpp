@@ -49,9 +49,9 @@ public:
   {
   }
 
-  virtual void setParamStr(uint8_t paramNum)
+  virtual void setParamStr(uint8_t paramIndex)
   {
-    switch(paramNum)
+    switch(paramIndex)
     {
       case LEVEL:
         fxParamStr[LEVEL] = std::to_string(fxParam[LEVEL]);
@@ -63,6 +63,7 @@ public:
         fxParamStr[STAGE] = std::to_string(fxParam[STAGE]*2);
         break;
       default:
+        fxParamStr[paramIndex] = "";
         break;
     }
   }

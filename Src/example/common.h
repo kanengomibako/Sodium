@@ -8,13 +8,10 @@ using std::string;
 /* 各定数設定 --------------------------*/
 
 // ペダル名称表示
-#define PEDAL_NAME "Sodium v0.3"
+#define PEDAL_NAME "Sodium v0.7"
 
 // ブロックサイズ まとめて処理を行う数
 #define BLOCK_SIZE 16
-
-// 円周率
-#define PI 3.14159265359f
 
 // サンプリング周波数
 #define SAMPLING_FREQ 44108.07f
@@ -33,6 +30,27 @@ using std::string;
 
 // エフェクト番号割当
 enum FXtype {OD, DD, TR, CE, PH, RV};
+
+// エフェクト有効・無効リスト
+#define FX_ENABLE_SETTING {true, true, true, true, true, true}
+
+// タップテンポ機能 有効1 無効0
+#define TAP_ENABLED 1
+
+// タップテンポ最大時間 ミリ秒
+#define MAX_TAP_TIME 3000.0f
+
+// チューナー機能 有効1 無効0
+#define TUNER_ENABLED 1
+
+// データ保存先 セクターと開始アドレス
+#define DATA_SECTOR FLASH_SECTOR_5
+#define DATA_ADDR 0x08020000
+
+/* 関数 -------------------------------------*/
+
+// 円周率
+#define PI 3.14159265359f
 
 // 最小値、最大値、絶対値関数
 #ifndef min
@@ -60,6 +78,7 @@ extern string fxParamStr[];
 extern uint8_t fxNum;
 extern int16_t fxAllData[MAX_FX_NUM][20];
 extern uint8_t fxParamIndexMax;
+extern float tapTime;
 
 // fx.cpp で定義
 extern string fxNameList[MAX_FX_NUM];

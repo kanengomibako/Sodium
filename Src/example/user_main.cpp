@@ -4,6 +4,10 @@
 #include "ssd1306.hpp"
 #include "fx.hpp"
 
+#if TUNER_ENABLED
+#include "tuner.hpp"
+#endif
+
 extern I2C_HandleTypeDef hi2c1;
 extern I2S_HandleTypeDef hi2s2;
 extern I2S_HandleTypeDef hi2s3;
@@ -18,8 +22,8 @@ uint32_t cpuUsageCycleMax[MAX_FX_NUM] = {}; // CPU使用サイクル数 各エ�
 const float i2sInterruptInterval = (float)BLOCK_SIZE / SAMPLING_FREQ; // I2Sの割り込み間隔時間
 
 // スイッチ短押し、スイッチ長押し、ステータス情報表示時間のカウント数
-const uint32_t shortPushCount = 1 + SHORT_PUSH_MSEC / (5 * 1000 * i2sInterruptInterval); // 1つのスイッチは5回に1回の読取のため5をかける
-const uint32_t longPushCount = 1 + LONG_PUSH_MSEC / (5 * 1000 * i2sInterruptInterval);
+const uint32_t shortPushCount = 1 + SHORT_PUSH_MSEC / (4 * 1000 * i2sInterruptInterval); // 1つのスイッチは4回に1回の読取のため4をかける
+const uint32_t longPushCount = 1 + LONG_PUSH_MSEC / (4 * 1000 * i2sInterruptInterval);
 const uint32_t statusDispCount = 1 + STATUS_DISP_MSEC / (1000 * i2sInterruptInterval);
 
 int16_t fxParam[20] = {1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1}; // 現在のエフェクトパラメータ
@@ -38,19 +42,22 @@ int8_t fxChangeFlag = 0; // エフェクト種類変更フラグ 次エフェク
 
 int16_t fxAllData[MAX_FX_NUM][20] = {}; // 全てのエフェクトパラメータデータ配列
 
-uint8_t cursorPosition = 0; // パラメータ選択カーソル位置 0 ～ 2
+const bool fxEnabled[MAX_FX_NUM] = FX_ENABLE_SETTING; // エフェクト有効・無効リスト common.hで設定
+
+uint8_t cursorPosition = 0; // パラメータ選択カーソル位置 0 ～ 5
 string statusStr = PEDAL_NAME; // ステータス表示文字列
 
-uint8_t screenMode = 0; // 画面モード 0:通常画面 1:未定 2:未定
+enum modeName {NORMAL, TAP, TUNER};
+uint8_t mode = NORMAL; // 動作モード 0:通常 1:タップテンポ 2:チューナー
 
-const uint32_t flashAddr = 0x08020000; // データ保存先（セクタ5）開始アドレス
+float tapTime = 0.0f; // タップテンポ入力時間 ms
 
-const uint8_t fxNameXY[2] = {0,0}; // エフェクト名 ステータス 表示位置
+const uint8_t fxNameXY[2] = {4,0}; // エフェクト名 ステータス 表示位置
 const uint8_t fxPageXY[2] = {88,0}; // エフェクトパラメータ ページ 表示位置
 const uint8_t percentXY[2] = {107,0}; // 処理時間% 表示位置
-const uint8_t cursorPositionXY[3][2] = {{0,10},{0,27},{0,44}}; // カーソル位置
-const uint8_t fxParamNameXY[3][2] = {{11,11},{11,28},{11,45}}; // エフェクトパラメータ名表示位置
-const uint8_t fxParamStrXY[3][2]  = {{117,11},{117,28},{117,45}}; // エフェクトパラメータ数値表示 一番右の文字の位置
+const uint8_t cursorPositionXY[6][2] = {{0,11},{0,29},{0,47},{65,11},{65,29},{65,47}}; // カーソル位置
+const uint8_t fxParamNameXY[6][2] = {{0,17},{0,35},{0,53},{65,17},{65,35},{65,53}}; // エフェクトパラメータ名表示位置
+const uint8_t fxParamStrXY[6][2]  = {{52,11},{52,29},{52,47},{117,11},{117,29},{117,47}}; // エフェクトパラメータ数値表示 右端の文字位置
 
 void mainInit() // <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<最初に1回のみ行う処理
 {
@@ -59,12 +66,15 @@ void mainInit() // <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<最初に1回の�
   asm("ORR r0, r0, #(1 << 24)");
   asm("VMSR FPSCR, r0");
 
-  // 時間計測用設定
+  // 処理時間計測用設定
   CoreDebug->DEMCR |= CoreDebug_DEMCR_TRCENA_Msk;
   DWT->CTRL |= DWT_CTRL_CYCCNTENA_Msk;
 
-  // ディスプレイ点灯確認
+  // ディスプレイ初期化
   ssd1306_Init(&hi2c1);
+
+#if 0
+  // ディスプレイ点灯確認
   ssd1306_Fill(White);
   ssd1306_SetCursor(3, 22);
   ssd1306_WriteString(PEDAL_NAME, Font_11x18, Black);
@@ -80,6 +90,7 @@ void mainInit() // <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<最初に1回の�
   HAL_GPIO_WritePin(LED_BLUE_GPIO_Port, LED_BLUE_Pin, GPIO_PIN_SET);
   HAL_Delay(300);
   HAL_GPIO_WritePin(LED_BLUE_GPIO_Port, LED_BLUE_Pin, GPIO_PIN_RESET);
+#endif
 
   // I2SのDMA開始
   HAL_I2S_Transmit_DMA(&hi2s2, (uint16_t*)TxBuffer, BLOCK_SIZE*4);
@@ -117,18 +128,25 @@ void mainInit() // <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<最初に1回の�
 
   // 保存済パラメータ読込
   loadData();
-  fxChange();
+
+  // 初期エフェクト読込
+  for (int i = 0; i < MAX_FX_NUM; i++)
+  {
+    if (fxEnabled[fxNum]) break; // エフェクト有効の時は処理終了、無効の時は次のエフェクトへ
+    fxNum = (fxNum + 1) % MAX_FX_NUM; // 最大値→最小値で循環 全エフェクト無効なら最初のfxNumに戻る
+  }
+  fxInit();
+
 }
 
 void mainLoop() // <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<メインループ
 {
 
-  if (screenMode == 0) // 通常画面 始まり*****************************
+  ssd1306_Fill(Black); // 一旦画面表示を全て消す
+
+  if (mode == NORMAL) // 通常モード *****************************
   {
-
-    uint8_t fxPage = fxParamIndex / 3; // エフェクトパラメータページ番号
-
-    ssd1306_Fill(Black); // 一旦画面表示を全て消す
+    uint8_t fxPage = fxParamIndex / 6; // エフェクトパラメータページ番号
 
     // ステータス表示------------------------------
     if (callbackCount > statusDispCount) // ステータス表示が変わり一定時間経過後、デフォルト表示に戻す
@@ -137,25 +155,31 @@ void mainLoop() // <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<メインループ
     }
     ssd1306_xyWriteStrWT(fxNameXY[0], fxNameXY[1], statusStr, Font_7x10);
 
-    // エフェクトパラメータ数値表示------------------------------
-    for (int i = 0; i < 3; i++)
+    // エフェクトパラメータ名称表示------------------------------
+    for (int i = 0; i < 6; i++)
     {
-      fxSetParamStr(i+3*fxPage); // パラメータ数値を文字列に変換
-      ssd1306_R_xyWriteStrWT(fxParamStrXY[i][0], fxParamStrXY[i][1], fxParamStr[i+3*fxPage], Font_11x18);
+      ssd1306_xyWriteStrWT(fxParamNameXY[i][0], fxParamNameXY[i][1], fxParamName[i+3*fxPage], Font_7x10);
     }
 
-    // エフェクトパラメータ名称表示------------------------------
-    for (int i = 0; i < 3; i++)
+    // エフェクトパラメータ数値表示------------------------------
+    for (int i = 0; i < 6; i++)
     {
-      ssd1306_xyWriteStrWT(fxParamNameXY[i][0], fxParamNameXY[i][1], fxParamName[i+3*fxPage], Font_11x18);
+      fxSetParamStr(i+6*fxPage); // パラメータ数値を文字列に変換
+      ssd1306_R_xyWriteStrWT(fxParamStrXY[i][0], fxParamStrXY[i][1], fxParamStr[i+3*fxPage], Font_11x18);
     }
 
     // エフェクトパラメータページ番号表示------------------------------
     string fxPageStr = "P" + std::to_string(fxPage + 1);
     ssd1306_xyWriteStrWT(fxPageXY[0], fxPageXY[1], fxPageStr, Font_7x10);
 
-    // カーソル表示------------------------------
-    ssd1306_xyWriteStrWT(cursorPositionXY[cursorPosition][0], cursorPositionXY[cursorPosition][1], ">", Font_11x18);
+    // カーソル表示(選択したパラメータの白黒反転) ------------------------------
+    for (int i = 0; i < 62; i++)
+    {
+      for (int j = 0; j < 16; j++)
+      {
+        ssd1306_InvertPixel(cursorPositionXY[cursorPosition][0]+i, cursorPositionXY[cursorPosition][1]+j);
+      }
+    }
 
     // CPU使用率表示------------------------------
     uint8_t cpuUsagePercent = 100.0f * cpuUsageCycleMax[fxNum] / SystemCoreClock / i2sInterruptInterval;
@@ -164,11 +188,37 @@ void mainLoop() // <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<メインループ
     else percentStr = percentStr + "%";
     ssd1306_xyWriteStrWT(percentXY[0], percentXY[1], percentStr, Font_7x10);
 
-    // 画面更新------------------------------
-    ssd1306_UpdateScreen(&hi2c1);
-    //HAL_Delay(10);
+  }
 
-  } // 通常画面 終わり*****************************
+  if (mode == TAP) // タップテンポモード *****************************
+  {
+    ssd1306_xyWriteStrWT(0, 0, "TAP TEMPO", Font_7x10);
+    string tmpStr = std::to_string((uint16_t)tapTime);
+    ssd1306_R_xyWriteStrWT(114, 0, tmpStr + " ms", Font_7x10); // タップ間隔時間を表示
+    if (tapTime > 60.0f) tmpStr = std::to_string((uint16_t)(60000.0f / tapTime)); // bpmを計算
+    ssd1306_R_xyWriteStrWT(103, 20, tmpStr + " bpm", Font_16x26); // bpm表示
+
+    uint16_t blinkCount = 1 + tapTime / (1000 * i2sInterruptInterval); // 点滅用カウント数
+    if (callbackCount % blinkCount < 60 / (1000 * i2sInterruptInterval)) // 60msバーを表示、点滅
+    {
+      for (int i = 0; i < 112; i++)
+      {
+        ssd1306_DrawPixel(8 + i, 47, White);
+        ssd1306_DrawPixel(8 + i, 48, White);
+      }
+    }
+  }
+
+  if (mode == TUNER) // チューナーモード *****************************
+  {
+#if TUNER_ENABLED
+    tunerDisp();
+#endif
+  }
+
+  // 画面更新------------------------------
+  ssd1306_UpdateScreen(&hi2c1);
+  //HAL_Delay(10);
 
   // LED表示------------------------------
   uint8_t r = (fxColorList[fxNum] >> 8) & 0b0000000011111000; // RGB565を変換 PWMで色を制御する場合使えるかも
@@ -195,7 +245,11 @@ void fxChange() // <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<エフェクト変
 {
   mute();
   fxDeinit();
-  fxNum = (MAX_FX_NUM + fxNum + fxChangeFlag) % MAX_FX_NUM; // 最大値←→最小値で循環
+  for (int i = 0; i < MAX_FX_NUM; i++)
+  {
+    fxNum = (MAX_FX_NUM + fxNum + fxChangeFlag) % MAX_FX_NUM; // 最大値←→最小値で循環
+    if (fxEnabled[fxNum]) break; // エフェクト有効の時は処理終了、無効の時は次のエフェクトへ
+  }
   fxParamIndex = 0;
   cursorPosition = 0;
   fxInit();
@@ -208,7 +262,7 @@ void swProcess(uint8_t num) // <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<スイ
 
   switch(num)
   {
-    case 0: // 左上スイッチ ----------------------------
+    case 0: // 左上スイッチ --------------------------------------------------------
       if (!HAL_GPIO_ReadPin(SW0_UPPER_L_GPIO_Port, SW0_UPPER_L_Pin))
       {
         swCount[num]++;
@@ -228,14 +282,23 @@ void swProcess(uint8_t num) // <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<スイ
       else
       {
         if (swCount[num] >= shortPushCount && swCount[num] < longPushCount) // 短押し 離した時の処理
-        { // エフェクトパラメータ選択位置変更 0→最大値で循環
-          fxParamIndex = (fxParamIndexMax + 1 + fxParamIndex - 1) % (fxParamIndexMax + 1);
-          cursorPosition = fxParamIndex % 3;
+        {
+          if (swCount[num+2] > shortPushCount) // 右上スイッチが押されている場合、パラメータ数値を最大値へ
+          {
+            swCount[num+2] = longPushCount + 1; // 右上スイッチは長押し済み扱いにする
+            fxParam[fxParamIndex] = fxParamMax[fxParamIndex];
+          }
+          else
+          { // エフェクトパラメータ選択位置変更 0→最大値で循環
+            fxParamIndex = (fxParamIndexMax + 1 + fxParamIndex - 1) % (fxParamIndexMax + 1);
+            cursorPosition = fxParamIndex % 6;
+          }
+
         }
         swCount[num] = 0;
       }
       break;
-    case 1: // 左下スイッチ ----------------------------
+    case 1: // 左下スイッチ --------------------------------------------------------
       if (!HAL_GPIO_ReadPin(SW1_LOWER_L_GPIO_Port, SW1_LOWER_L_Pin))
       {
         swCount[num]++;
@@ -255,14 +318,22 @@ void swProcess(uint8_t num) // <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<スイ
       else
       {
         if (swCount[num] >= shortPushCount && swCount[num] < longPushCount) // 短押し 離した時の処理
-        { // エフェクトパラメータ選択位置変更 最大値→0で循環
-          fxParamIndex = (fxParamIndex + 1) % (fxParamIndexMax + 1);
-          cursorPosition = fxParamIndex % 3;
+        {
+          if (swCount[num+2] > shortPushCount) // 右下スイッチが押されている場合、パラメータ数値を最小値へ
+          {
+            swCount[num+2] = longPushCount + 1; // 右下スイッチは長押し済み扱いにする
+            fxParam[fxParamIndex] = fxParamMin[fxParamIndex];
+          }
+          else
+          { // エフェクトパラメータ選択位置変更 最大値→0で循環
+            fxParamIndex = (fxParamIndex + 1) % (fxParamIndexMax + 1);
+            cursorPosition = fxParamIndex % 6;
+          }
         }
         swCount[num] = 0;
       }
       break;
-    case 2: // 右上スイッチ ----------------------------
+    case 2: // 右上スイッチ --------------------------------------------------------
       if (!HAL_GPIO_ReadPin(SW2_UPPER_R_GPIO_Port, SW2_UPPER_R_Pin))
       {
         swCount[num]++;
@@ -275,12 +346,22 @@ void swProcess(uint8_t num) // <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<スイ
       {
         if (swCount[num] >= shortPushCount && swCount[num] < longPushCount) // 短押し 離した時の処理
         {
-          fxParam[fxParamIndex] = min(fxParam[fxParamIndex] + 1, fxParamMax[fxParamIndex]);
+          if (swCount[num+1] > shortPushCount) // 右下スイッチが押されている場合、パラメータ数値を中間値へ
+          {
+            swCount[num+1] = longPushCount + 1; // 右下スイッチは長押し済み扱いにする
+            fxParam[fxParamIndex] = (fxParamMin[fxParamIndex] + fxParamMax[fxParamIndex]) / 2;
+          }
+          else if (swCount[num-2] > shortPushCount) // 左上スイッチが押されている場合、パラメータ数値を最大値へ
+          {
+            swCount[num-2] = longPushCount + 1; // 左上スイッチは長押し済み扱いにする
+            fxParam[fxParamIndex] = fxParamMax[fxParamIndex];
+          }
+          else fxParam[fxParamIndex] = min(fxParam[fxParamIndex] + 1, fxParamMax[fxParamIndex]);
         }
         swCount[num] = 0;
       }
       break;
-    case 3: // 右下スイッチ ----------------------------
+    case 3: // 右下スイッチ --------------------------------------------------------
       if (!HAL_GPIO_ReadPin(SW3_LOWER_R_GPIO_Port, SW3_LOWER_R_Pin))
       {
         swCount[num]++;
@@ -295,26 +376,17 @@ void swProcess(uint8_t num) // <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<スイ
       {
         if (swCount[num] >= shortPushCount && swCount[num] < longPushCount) // 短押し 離した時の処理
         {
-          fxParam[fxParamIndex] = max(fxParam[fxParamIndex] - 1, fxParamMin[fxParamIndex]);
-        }
-        swCount[num] = 0;
-      }
-      break;
-    case 4: // フットスイッチ ----------------------------
-      if (!HAL_GPIO_ReadPin(SW4_FOOT_GPIO_Port, SW4_FOOT_Pin))
-      {
-        swCount[num]++;
-        if (swCount[num] == longPushCount) // 長押し 未使用
-        {
-          statusStr = "SW4LONGPUSH";
-          callbackCount = 0;
-        }
-      }
-      else
-      {
-        if (swCount[num] >= shortPushCount && swCount[num] < longPushCount) // 短押し 離した時の処理
-        {
-          fxOn = !fxOn;
+          if (swCount[num-1] > shortPushCount) // 右上スイッチが押されている場合、パラメータ数値を中間値へ
+          {
+            swCount[num-1] = longPushCount + 1; // 右上スイッチは長押し済み扱いにする
+            fxParam[fxParamIndex] = (fxParamMin[fxParamIndex] + fxParamMax[fxParamIndex]) / 2;
+          }
+          else if (swCount[num-2] > shortPushCount) // 左下スイッチが押されている場合、パラメータ数値を最小値へ
+          {
+            swCount[num-2] = longPushCount + 1; // 左下スイッチは長押し済み扱いにする
+            fxParam[fxParamIndex] = fxParamMin[fxParamIndex];
+          }
+          else fxParam[fxParamIndex] = max(fxParam[fxParamIndex] - 1, fxParamMin[fxParamIndex]);
         }
         swCount[num] = 0;
       }
@@ -322,6 +394,61 @@ void swProcess(uint8_t num) // <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<スイ
     default:
       break;
   }
+}
+
+void footSwProcess() // <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<フットスイッチ処理
+{
+  static uint32_t footSwCount = 0; // スイッチが押されている間カウントアップ
+  static float tmpTapTime = 0; // タップ間隔時間 一時保存用
+
+  if (!HAL_GPIO_ReadPin(SW4_FOOT_GPIO_Port, SW4_FOOT_Pin))
+  {
+    footSwCount++;
+    if (mode == TAP && footSwCount == 4*shortPushCount) // スイッチを押した時のタップ間隔時間を記録
+    {
+      tmpTapTime = (float)callbackCount * i2sInterruptInterval * 1000.0f;
+      callbackCount = 0;
+    }
+    if (footSwCount == 4*longPushCount) // 長押し
+    {
+      if (mode == NORMAL)
+      {
+#if TAP_ENABLED
+        mode = TAP; // タップテンポモードへ
+        callbackCount = 0;
+#endif
+      }
+      else
+      {
+        mode = NORMAL; // タップテンポモード、チューナーモード終了
+        tapTime = 0.0f; // タップ時間リセット
+      }
+    }
+    if (footSwCount == 12*longPushCount) // 3倍長押し
+    {
+      if (mode == TAP)
+      {
+#if TUNER_ENABLED
+        mute();
+        mode = TUNER; // チューナーモードへ
+#endif
+      }
+    }
+  }
+  else
+  {
+    if (footSwCount >= 4*shortPushCount && footSwCount < 4*longPushCount) // 短押し 離した時の処理
+    {
+      if (mode == NORMAL) fxOn = !fxOn;
+      else if (mode == TAP)
+      { // スイッチを押した時記録していたタップ間隔時間をスイッチを離した時に反映させる
+        if (100.0f < tmpTapTime && tmpTapTime < MAX_TAP_TIME) tapTime = tmpTapTime;
+        else tapTime = 0.0f;
+      }
+    }
+    footSwCount = 0;
+  }
+
 }
 
 // <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<DMA用に上位16ビットと下位16ビットを入れ替える
@@ -346,7 +473,16 @@ void mainProcess(uint16_t start_sample) // <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
     xL[i] = (float)swap16(RxBuffer[m]) / 2147483648.0f;
   }
 
-  fxProcess(xL, xR); // エフェクト処理 計算用配列を渡す
+  if (mode == TUNER)
+  {
+#if TUNER_ENABLED
+    tunerProcess(xL, xR); // チューナー
+#endif
+  }
+  else
+  {
+    fxProcess(xL, xR); // エフェクト処理 計算用配列を渡す
+  }
 
   for (uint16_t i = 0; i < BLOCK_SIZE; i++)
   {
@@ -359,10 +495,15 @@ void mainProcess(uint16_t start_sample) // <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
     TxBuffer[m] = swap16((int32_t)(2147483648.0f * xL[i]));
   }
 
-  swProcess(callbackCount % 5); // 割り込みごとにスイッチ処理するが、スイッチ1つずつを順番に行う
   callbackCount++; // I2Sの割り込みごとにカウントアップ タイマとして利用
-  cpuUsageCycleMax[fxNum] = max(cpuUsageCycleMax[fxNum], DWT->CYCCNT); // CPU使用率計算用
+  footSwProcess(); // フットスイッチ処理
+  if (mode == NORMAL)
+  {
+    swProcess(callbackCount % 4); // 割り込みごとにスイッチ処理するが、スイッチ1つずつを順番に行う
+    cpuUsageCycleMax[fxNum] = max(cpuUsageCycleMax[fxNum], DWT->CYCCNT); // CPU使用率計算用
+  }
   if (fxChangeFlag) fxChange(); // エフェクト変更 ※ディレイメモリ確保前に信号処理に進まないように割り込み内で行う
+
 }
 
 // <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<I2Sの受信バッファに半分データがたまったときの割り込み
@@ -379,7 +520,7 @@ void HAL_I2S_RxCpltCallback(I2S_HandleTypeDef *hi2s)
 
 void loadData() // <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<データ読み込み
 {
-  uint32_t addr = flashAddr;
+  uint32_t addr = DATA_ADDR;
   for (uint16_t i = 0; i < MAX_FX_NUM; i++) // エフェクトデータ フラッシュ読込
   {
     for (uint16_t j = 0; j < 20; j++)
@@ -397,16 +538,11 @@ void saveData() // <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<データ保存
   mute();
   ssd1306_xyWriteStrWT(fxNameXY[0], fxNameXY[1], "WRITING... ", Font_7x10);
 
-  HAL_FLASH_Unlock(); // フラッシュ ロック解除
-  FLASH_EraseInitTypeDef erase;
-  uint32_t error = 0;
-  erase.TypeErase = FLASH_TYPEERASE_SECTORS;
-  erase.Sector = FLASH_SECTOR_5;
-  erase.NbSectors = 1;
-  erase.VoltageRange = FLASH_VOLTAGE_RANGE_3;
-  HAL_FLASHEx_Erase(&erase, &error); // フラッシュ消去
+  eraseData(); // フラッシュ消去
 
-  uint32_t addr = flashAddr;
+  HAL_FLASH_Unlock(); // フラッシュ ロック解除
+
+  uint32_t addr = DATA_ADDR;
 
   for (uint16_t j = 0; j < 20; j++) // 現在のパラメータをデータ配列へ移す
   {
@@ -437,7 +573,7 @@ void eraseData() // <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<データ全消�
   FLASH_EraseInitTypeDef erase;
   uint32_t error = 0;
   erase.TypeErase = FLASH_TYPEERASE_SECTORS;
-  erase.Sector = FLASH_SECTOR_5;
+  erase.Sector = DATA_SECTOR;
   erase.NbSectors = 1;
   erase.VoltageRange = FLASH_VOLTAGE_RANGE_3;
   HAL_FLASHEx_Erase(&erase, &error); // フラッシュ消去

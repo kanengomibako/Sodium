@@ -57,9 +57,9 @@ public:
     del1.erase();
   }
 
-  virtual void setParamStr(uint8_t paramNum)
+  virtual void setParamStr(uint8_t paramIndex)
   {
-    switch(paramNum)
+    switch(paramIndex)
     {
       case LEVEL:
         fxParamStr[LEVEL] = std::to_string(fxParam[LEVEL]);
@@ -80,6 +80,7 @@ public:
         fxParamStr[TONE] = std::to_string(fxParam[TONE]);
         break;
       default:
+        fxParamStr[paramIndex] = "";
         break;
     }
   }

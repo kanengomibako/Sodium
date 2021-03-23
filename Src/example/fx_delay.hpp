@@ -9,22 +9,26 @@
 class fx_delay : public fx_base
 {
 private:
-  enum paramName {DTIME, ELEVEL, FBACK, TONE, OUTPUT,
-      P5,P6,P7,P8,P9,P10,P11,P12,P13,P14,P15,P16,P17,P18,P19};
-  float param[20] = {0.0f, 0.0f, 0.0f, 1.0f, 1.0f,
-      0,0,0,0,0,0,0,0,0,0,0,0,0,0,0};
-  const int16_t paramMax[20] = {150,100, 99,100,100,
-      0,0,0,0,0,0,0,0,0,0,0,0,0,0,0};
-  const int16_t paramMin[20] = {  1,  0,  0,  0,  0,  0,
+  enum paramName {DTIME, ELEVEL, FBACK, TONE, OUTPUT, TAPDIV,
+    P6,P7,P8,P9,P10,P11,P12,P13,P14,P15,P16,P17,P18,P19};
+  float param[20] = {0.0f, 0.0f, 0.0f, 1.0f, 1.0f, 0,
+      0,0,0,0,0,0,0,0,0,0,0,0,0,0};
+  const int16_t paramMax[20] = {1500,100, 99,100,100,  5,
+      0,0,0,0,0,0,0,0,0,0,0,0,0,0};
+  const int16_t paramMin[20] = { 10,  0,  0,  0,  0,  0,
       0,0,0,0,0,0,0,0,0,0,0,0,0,0};
   const string paramName[20] = {
-      "D.TIME", "E.LEVEL", "F.BACK",
-			"TONE", "OUTPUT",
-			"","","","","","","","","","","","","","",""};
-  const uint8_t paramIndexMax = 4;
+      "TIM", "LEVEL", "F.BACK",
+			"TONE", "OUTPUT","DIV",
+			"","","","","","","","","","","","","",""};
+  const uint8_t paramIndexMax = 5;
 
   // 最大ディレイタイム 16bit モノラルで2.5秒程度まで
   const float maxDelayTime = 1500.0f;
+
+  // タップテンポ DIV定数 0←→5で循環させ、実際使うのは1～4
+  const string tapDivStr[6]  = {"1/1", "1/1", "1/2", "1/3", "3/4", "1/1"};
+  const float tapDivFloat[6] = {1.0f, 1.0f, 0.5f, 0.333333f, 0.75f, 1.0f};
 
   signalSw bypassIn, bypassOut;
   delayBuf del1;
@@ -62,7 +66,7 @@ public:
     switch(paramIndex)
     {
       case DTIME:
-        fxParamStr[DTIME] = std::to_string(fxParam[DTIME]) + "0";
+        fxParamStr[DTIME] = std::to_string(fxParam[DTIME]);
         break;
       case ELEVEL:
         fxParamStr[ELEVEL] = std::to_string(fxParam[ELEVEL]);
@@ -76,6 +80,9 @@ public:
       case OUTPUT:
         fxParamStr[OUTPUT] = std::to_string(fxParam[OUTPUT]);
         break;
+      case TAPDIV:
+        fxParamStr[TAPDIV] = tapDivStr[fxParam[TAPDIV]];
+        break;
       default:
         fxParamStr[paramIndex] = "";
         break;
@@ -84,12 +91,21 @@ public:
 
   virtual void setParam()
   {
+    float divTapTime = tapTime * tapDivFloat[fxParam[TAPDIV]]; // DIV計算済タップ時間
     static uint8_t count = 0;
     count = (count + 1) % 10; // 負荷軽減のためパラメータ計算を分散させる
     switch(count)
     {
       case 0:
-        param[DTIME] = (float)fxParam[DTIME] * 10.0f; // DELAYTIME 10 ～ 1500 ms
+        if (divTapTime > 10.0f && divTapTime < maxDelayTime)
+        {
+          param[DTIME] = divTapTime;
+          fxParam[DTIME] = param[DTIME];
+        }
+        else
+        {
+          param[DTIME] = (float)fxParam[DTIME]; // DELAYTIME 10 ～ 1500 ms
+        }
         break;
       case 1:
         param[ELEVEL] = logPot(fxParam[ELEVEL], -20.0f, 20.0f);  // EFFECT LEVEL -20 ～ +20dB
@@ -105,6 +121,10 @@ public:
         break;
       case 5:
         lpf2ndTone.set(param[TONE]);
+        break;
+      case 6:
+        if (fxParam[TAPDIV] < 1) fxParam[TAPDIV] = 4; // TAPDIV 0←→5で循環させ、実際使うのは1～4
+        if (fxParam[TAPDIV] > 4) fxParam[TAPDIV] = 1;
         break;
       default:
         break;

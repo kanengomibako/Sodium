@@ -223,3 +223,10 @@ void ssd1306_R_xyWriteStrWT(uint8_t x, uint8_t y, string str, FontDef Font)
   SSD1306.CurrentY = y;
   ssd1306_WriteString(str, Font, White);
 }
+
+//  色反転
+void ssd1306_InvertPixel(uint8_t x, uint8_t y)
+{
+    if (x >= SSD1306_WIDTH || y >= SSD1306_HEIGHT) return;
+    SSD1306_Buffer[x + (y / 8) * SSD1306_WIDTH] ^= (1 << (y % 8));
+}

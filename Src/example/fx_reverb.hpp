@@ -19,7 +19,7 @@ private:
       0,0,0,0,0,0,0,0,0,0,0,0,0,0};
   const string paramName[20] = {
       "LEVEL", "MIX", "F.BACK",
-      "HI-CUT", "LO-CUT", "HI-DUMP"
+      "HiCUT", "LoCUT", "HiDUMP"
       "","","","","","","","","","","","","",""};
   const uint8_t paramIndexMax = 5;
   const uint8_t dt[10] = {
@@ -57,9 +57,9 @@ public:
     for (int i = 0; i < 10; i++) del[i].erase();
   }
 
-  virtual void setParamStr(uint8_t paramNum)
+  virtual void setParamStr(uint8_t paramIndex)
   {
-    switch(paramNum)
+    switch(paramIndex)
     {
       case LEVEL:
         fxParamStr[LEVEL] = std::to_string(fxParam[LEVEL]);
@@ -80,6 +80,7 @@ public:
         fxParamStr[HIDUMP] = std::to_string(fxParam[HIDUMP]);
         break;
       default:
+        fxParamStr[paramIndex] = "";
         break;
     }
   }
