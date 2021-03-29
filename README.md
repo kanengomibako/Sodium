@@ -8,7 +8,7 @@ STM32マイコンを搭載した、プログラミング可能なデジタルエ
 - DC9V（センターマイナス）出力のACアダプターで、0.3A以上の電流出力が可能なもの
 - PC（Windows、macOS、Linux いずれも可、64bit推奨）<br/>※ 32bit環境では使用できる開発ソフトが限られます。
 - STM32対応のデバッガ（プログラム書き込みやデバッグを行う機器）<br/>
-	→ [ST-LINK/V2](https://www.st.com/ja/development-tools/st-link-v2.html)、[STM32 Nucleo Board](https://www.st.com/ja/evaluation-tools/stm32-nucleo-boards.html) 等
+	→ [デバッガ購入について](Docs/005_デバッガ購入について.md)
 - PCとデバッガを接続するUSBケーブル
 - デバッガとSodium本体を接続するケーブル<br/>
 	→ [コネクタ付コード 3P](https://akizukidenshi.com/catalog/g/gC-15384/) 等
@@ -26,6 +26,7 @@ STM32マイコンを搭載した、プログラミング可能なデジタルエ
 
 ### 資料
 - [初期プログラムについて](Docs/000_初期プログラムについて.md)
+- [デバッガ購入について](Docs/005_デバッガ購入について.md)
 - [プログラム書き込み・デバッグ](Docs/001_プログラム書き込み・デバッグ.md)
 - [サンプルプログラムについて](Docs/002_サンプルプログラムについて.md)
 - [マイコンの機能設定](Docs/003_マイコンの機能設定.md)
