@@ -15,10 +15,8 @@ extern I2S_HandleTypeDef hi2s3;
 int32_t RxBuffer[BLOCK_SIZE*4] = {}; // 音声信号受信バッファ配列 Lch前半 Lch後半 Rch前半 Rch後半
 int32_t TxBuffer[BLOCK_SIZE*4] = {}; // 音声信号送信バッファ配列
 
-bool fxOn = false; // エフェクトオン・オフ状態
 uint32_t callbackCount = 0; // I2Sの割り込みごとにカウントアップ タイマとして利用
-
-uint32_t cpuUsageCycleMax[MAX_FX_NUM] = {}; // CPU使用サイクル数 各エフェクトごとに最大値を記録
+extern uint32_t cpuUsageCycleMax[]; // CPU使用サイクル数
 const float i2sInterruptInterval = (float)BLOCK_SIZE / SAMPLING_FREQ; // I2Sの割り込み間隔時間
 
 // スイッチ短押し、スイッチ長押し、ステータス情報表示時間のカウント数
@@ -26,23 +24,20 @@ const uint32_t shortPushCount = 1 + SHORT_PUSH_MSEC / (4 * 1000 * i2sInterruptIn
 const uint32_t longPushCount = 1 + LONG_PUSH_MSEC / (4 * 1000 * i2sInterruptInterval);
 const uint32_t statusDispCount = 1 + STATUS_DISP_MSEC / (1000 * i2sInterruptInterval);
 
-int16_t fxParam[20] = {1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1}; // 現在のエフェクトパラメータ
-string fxParamStr[20] = {};  // 現在のエフェクトパラメータ数値 文字列
-
-int16_t fxParamMax[20] = {1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1}; // エフェクトパラメータ最大値
+bool fxOn = false; // エフェクトオン・オフ状態
+string fxName = ""; // 現在のエフェクト名
+uint16_t fxColor = 0; // 現在のエフェクトLED色 RGB565
+string fxParamName[20] = {}; // エフェクトパラメータ名 LEVEL, GAIN等
+int16_t fxParam[20] = {}; // 現在のエフェクトパラメータ数値
+string fxParamStr[20] = {}; // 現在のエフェクトパラメータ数値 文字列
+int16_t fxParamMax[20] = {}; // エフェクトパラメータ最大値
 int16_t fxParamMin[20] = {}; // エフェクトパラメータ最小値
 
-string fxParamName[20] = {}; // エフェクトパラメータ名 LEVEL, GAIN等
+uint8_t fxParamNum = 0; // エフェクトパラメータ 現在何番目か ※0から始まる
+uint8_t fxParamNumMax = 0; // エフェクトパラメータ数 最大値
 
-uint8_t fxParamIndex = 0; // エフェクトパラメータ 現在何番目か ※0から始まる
-uint8_t fxParamIndexMax = 0; // エフェクトパラメータ数 最大値-1
-
-uint8_t fxNum = 0; // 現在のエフェクト番号
+uint8_t fxNum = 0; // 現在のエフェクト番号 ※0から始まる
 int8_t fxChangeFlag = 0; // エフェクト種類変更フラグ 次エフェクトへ: 1 前エフェクトへ: -1
-
-int16_t fxAllData[MAX_FX_NUM][20] = {}; // 全てのエフェクトパラメータデータ配列
-
-const bool fxEnabled[MAX_FX_NUM] = FX_ENABLE_SETTING; // エフェクト有効・無効リスト common.hで設定
 
 uint8_t cursorPosition = 0; // パラメータ選択カーソル位置 0 ～ 5
 string statusStr = PEDAL_NAME; // ステータス表示文字列
@@ -126,15 +121,10 @@ void mainInit() // <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<最初に1回の�
     HAL_Delay(1000);
   }
 
-  // 保存済パラメータ読込
+  // 保存済パラメータ読込 エフェクト番号(fxNum)読込
   loadData();
 
   // 初期エフェクト読込
-  for (int i = 0; i < MAX_FX_NUM; i++)
-  {
-    if (fxEnabled[fxNum]) break; // エフェクト有効の時は処理終了、無効の時は次のエフェクトへ
-    fxNum = (fxNum + 1) % MAX_FX_NUM; // 最大値→最小値で循環 全エフェクト無効なら最初のfxNumに戻る
-  }
   fxInit();
 
 }
@@ -146,12 +136,12 @@ void mainLoop() // <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<メインループ
 
   if (mode == NORMAL) // 通常モード *****************************
   {
-    uint8_t fxPage = fxParamIndex / 6; // エフェクトパラメータページ番号
+    uint8_t fxPage = fxParamNum / 6; // エフェクトパラメータページ番号
 
     // ステータス表示------------------------------
     if (callbackCount > statusDispCount) // ステータス表示が変わり一定時間経過後、デフォルト表示に戻す
     {
-      statusStr = fxNameList[fxNum]; // エフェクト名表示
+      statusStr = fxName; // エフェクト名表示
     }
     ssd1306_xyWriteStrWT(fxNameXY[0], fxNameXY[1], statusStr, Font_7x10);
 
@@ -221,9 +211,9 @@ void mainLoop() // <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<メインループ
   //HAL_Delay(10);
 
   // LED表示------------------------------
-  uint8_t r = (fxColorList[fxNum] >> 8) & 0b0000000011111000; // RGB565を変換 PWMで色を制御する場合使えるかも
-  uint8_t g = (fxColorList[fxNum] >> 3) & 0b0000000011111100;
-  uint8_t b = (fxColorList[fxNum] << 3) & 0b0000000011111000;
+  uint8_t r = (fxColor >> 8) & 0b0000000011111000; // RGB565を変換 PWMで色を制御する場合使えるかも
+  uint8_t g = (fxColor >> 3) & 0b0000000011111100;
+  uint8_t b = (fxColor << 3) & 0b0000000011111000;
   if (r && fxOn) HAL_GPIO_WritePin(LED_RED_GPIO_Port, LED_RED_Pin, GPIO_PIN_SET);
   else HAL_GPIO_WritePin(LED_RED_GPIO_Port, LED_RED_Pin, GPIO_PIN_RESET);
   if (g && fxOn) HAL_GPIO_WritePin(LED_GREEN_GPIO_Port, LED_GREEN_Pin, GPIO_PIN_SET);
@@ -245,12 +235,8 @@ void fxChange() // <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<エフェクト変
 {
   mute();
   fxDeinit();
-  for (int i = 0; i < MAX_FX_NUM; i++)
-  {
-    fxNum = (MAX_FX_NUM + fxNum + fxChangeFlag) % MAX_FX_NUM; // 最大値←→最小値で循環
-    if (fxEnabled[fxNum]) break; // エフェクト有効の時は処理終了、無効の時は次のエフェクトへ
-  }
-  fxParamIndex = 0;
+  fxNum = (fxNumMax + fxNum + fxChangeFlag) % fxNumMax; // 最大値←→最小値で循環
+  fxParamNum = 0;
   cursorPosition = 0;
   fxInit();
   fxChangeFlag = 0;
@@ -286,12 +272,12 @@ void swProcess(uint8_t num) // <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<スイ
           if (swCount[num+2] > shortPushCount) // 右上スイッチが押されている場合、パラメータ数値を最大値へ
           {
             swCount[num+2] = longPushCount + 1; // 右上スイッチは長押し済み扱いにする
-            fxParam[fxParamIndex] = fxParamMax[fxParamIndex];
+            fxParam[fxParamNum] = fxParamMax[fxParamNum];
           }
           else
           { // エフェクトパラメータ選択位置変更 0→最大値で循環
-            fxParamIndex = (fxParamIndexMax + 1 + fxParamIndex - 1) % (fxParamIndexMax + 1);
-            cursorPosition = fxParamIndex % 6;
+            fxParamNum = (fxParamNumMax + fxParamNum - 1) % fxParamNumMax;
+            cursorPosition = fxParamNum % 6;
           }
 
         }
@@ -322,12 +308,12 @@ void swProcess(uint8_t num) // <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<スイ
           if (swCount[num+2] > shortPushCount) // 右下スイッチが押されている場合、パラメータ数値を最小値へ
           {
             swCount[num+2] = longPushCount + 1; // 右下スイッチは長押し済み扱いにする
-            fxParam[fxParamIndex] = fxParamMin[fxParamIndex];
+            fxParam[fxParamNum] = fxParamMin[fxParamNum];
           }
           else
           { // エフェクトパラメータ選択位置変更 最大値→0で循環
-            fxParamIndex = (fxParamIndex + 1) % (fxParamIndexMax + 1);
-            cursorPosition = fxParamIndex % 6;
+            fxParamNum = (fxParamNum + 1) % fxParamNumMax;
+            cursorPosition = fxParamNum % 6;
           }
         }
         swCount[num] = 0;
@@ -339,7 +325,7 @@ void swProcess(uint8_t num) // <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<スイ
         swCount[num]++;
         if (swCount[num] >= longPushCount/2 && (swCount[num] % (longPushCount/4)) == 0) // 長押し 繰り返し動作
         {
-          fxParam[fxParamIndex] = min(fxParam[fxParamIndex] + 10, fxParamMax[fxParamIndex]);
+          fxParam[fxParamNum] = min(fxParam[fxParamNum] + 10, fxParamMax[fxParamNum]);
         }
       }
       else
@@ -349,14 +335,14 @@ void swProcess(uint8_t num) // <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<スイ
           if (swCount[num+1] > shortPushCount) // 右下スイッチが押されている場合、パラメータ数値を中間値へ
           {
             swCount[num+1] = longPushCount + 1; // 右下スイッチは長押し済み扱いにする
-            fxParam[fxParamIndex] = (fxParamMin[fxParamIndex] + fxParamMax[fxParamIndex]) / 2;
+            fxParam[fxParamNum] = (fxParamMin[fxParamNum] + fxParamMax[fxParamNum]) / 2;
           }
           else if (swCount[num-2] > shortPushCount) // 左上スイッチが押されている場合、パラメータ数値を最大値へ
           {
             swCount[num-2] = longPushCount + 1; // 左上スイッチは長押し済み扱いにする
-            fxParam[fxParamIndex] = fxParamMax[fxParamIndex];
+            fxParam[fxParamNum] = fxParamMax[fxParamNum];
           }
-          else fxParam[fxParamIndex] = min(fxParam[fxParamIndex] + 1, fxParamMax[fxParamIndex]);
+          else fxParam[fxParamNum] = min(fxParam[fxParamNum] + 1, fxParamMax[fxParamNum]);
         }
         swCount[num] = 0;
       }
@@ -368,7 +354,7 @@ void swProcess(uint8_t num) // <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<スイ
         if (swCount[num] >= longPushCount/2 && (swCount[num] % (longPushCount/4)) == 0) // 長押し 繰り返し動作
         {
           {
-            fxParam[fxParamIndex] = max(fxParam[fxParamIndex] - 10, fxParamMin[fxParamIndex]);
+            fxParam[fxParamNum] = max(fxParam[fxParamNum] - 10, fxParamMin[fxParamNum]);
           }
         }
       }
@@ -379,14 +365,14 @@ void swProcess(uint8_t num) // <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<スイ
           if (swCount[num-1] > shortPushCount) // 右上スイッチが押されている場合、パラメータ数値を中間値へ
           {
             swCount[num-1] = longPushCount + 1; // 右上スイッチは長押し済み扱いにする
-            fxParam[fxParamIndex] = (fxParamMin[fxParamIndex] + fxParamMax[fxParamIndex]) / 2;
+            fxParam[fxParamNum] = (fxParamMin[fxParamNum] + fxParamMax[fxParamNum]) / 2;
           }
           else if (swCount[num-2] > shortPushCount) // 左下スイッチが押されている場合、パラメータ数値を最小値へ
           {
             swCount[num-2] = longPushCount + 1; // 左下スイッチは長押し済み扱いにする
-            fxParam[fxParamIndex] = fxParamMin[fxParamIndex];
+            fxParam[fxParamNum] = fxParamMin[fxParamNum];
           }
-          else fxParam[fxParamIndex] = max(fxParam[fxParamIndex] - 1, fxParamMin[fxParamIndex]);
+          else fxParam[fxParamNum] = max(fxParam[fxParamNum] - 1, fxParamMin[fxParamNum]);
         }
         swCount[num] = 0;
       }
@@ -521,7 +507,7 @@ void HAL_I2S_RxCpltCallback(I2S_HandleTypeDef *hi2s)
 void loadData() // <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<データ読み込み
 {
   uint32_t addr = DATA_ADDR;
-  for (uint16_t i = 0; i < MAX_FX_NUM; i++) // エフェクトデータ フラッシュ読込
+  for (uint16_t i = 0; i < fxNumMax; i++) // エフェクトデータ フラッシュ読込
   {
     for (uint16_t j = 0; j < 20; j++)
     {
@@ -530,7 +516,7 @@ void loadData() // <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<データ読み込
     }
   }
   fxNum = *((uint16_t*)addr);
-  if (fxNum >= MAX_FX_NUM) fxNum = 0;
+  if (fxNum >= fxNumMax) fxNum = 0;
 }
 
 void saveData() // <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<データ保存
@@ -549,7 +535,7 @@ void saveData() // <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<データ保存
     fxAllData[fxNum][j] = fxParam[j];
   }
 
-  for (uint16_t i = 0; i < MAX_FX_NUM; i++) // フラッシュ書込
+  for (uint16_t i = 0; i < fxNumMax; i++) // フラッシュ書込
   {
     for (uint16_t j = 0; j < 20; j++)
     {

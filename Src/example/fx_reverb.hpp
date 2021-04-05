@@ -9,21 +9,16 @@
 class fx_reverb : public fx_base
 {
 private:
-  enum paramName {LEVEL, MIX, FBACK, HICUT, LOCUT, HIDUMP,
-    P6,P7,P8,P9,P10,P11,P12,P13,P14,P15,P16,P17,P18,P19};
-  float param[20] = {0.0f, 0.0f, 0.0f, 1.0f, 1.0f, 1.0f,
-      0,0,0,0,0,0,0,0,0,0,0,0,0,0};
-  const int16_t paramMax[20] = {100,100, 99,100,100,100,
-      1,1,1,1,1,1,1,1,1,1,1,1,1,1};
-  const int16_t paramMin[20] = {  0,  0,  0,  0,  0,  0,
-      0,0,0,0,0,0,0,0,0,0,0,0,0,0};
-  const string paramName[20] = {
-      "LEVEL", "MIX", "F.BACK",
-      "HiCUT", "LoCUT", "HiDUMP"
-      "","","","","","","","","","","","","",""};
-  const uint8_t paramIndexMax = 5;
-  const uint8_t dt[10] = {
-      44, 26, 19, 16, 8, 4, 59, 69, 75, 86}; // ディレイタイム配列
+  const string name = "REVERB"; // Pure Data [rev2~] に基づいたFDNリバーブ
+  const uint16_t color = COLOR_RGB; // 赤緑青
+  const string paramName[20] = {"LEVEL", "MIX", "F.BACK", "HiCUT", "LoCUT", "HiDUMP"};
+  enum paramName {LEVEL, MIX, FBACK, HICUT, LOCUT, HIDUMP};
+  float param[20] = {1, 1, 1, 1, 1, 1};
+  const int16_t paramMax[20] = {100,100, 99,100,100,100};
+  const int16_t paramMin[20] = {  0,  0,  0,  0,  0,  0};
+  const uint8_t paramNumMax = 6;
+
+  const uint8_t dt[10] = {44, 26, 19, 16, 8, 4, 59, 69, 75, 86}; // ディレイタイム配列
 
   signalSw bypassIn, bypassOutL, bypassOutR;
   delayBufPrimeNum del[10];
@@ -33,13 +28,13 @@ private:
 public:
   fx_reverb()
   {
-    fxNameList[RV] = "REVERB"; // Pure Data [rev2~] に基づいたFDNリバーブ
-    fxColorList[RV] = 0b1111111111111111; // 白
   }
 
   virtual void init()
   {
-    fxParamIndexMax = paramIndexMax;
+    fxName = name;
+    fxColor = color;
+    fxParamNumMax = paramNumMax;
     for (int i = 0; i < 20; i++)
     {
       fxParamName[i] = paramName[i];
@@ -57,30 +52,30 @@ public:
     for (int i = 0; i < 10; i++) del[i].erase();
   }
 
-  virtual void setParamStr(uint8_t paramIndex)
+  virtual void setParamStr(uint8_t paramNum)
   {
-    switch(paramIndex)
+    switch(paramNum)
     {
-      case LEVEL:
+      case 0:
         fxParamStr[LEVEL] = std::to_string(fxParam[LEVEL]);
         break;
-      case MIX:
+      case 1:
         fxParamStr[MIX] = std::to_string(fxParam[MIX]);
         break;
-      case FBACK:
+      case 2:
         fxParamStr[FBACK] = std::to_string(fxParam[FBACK]);
         break;
-      case HICUT:
+      case 3:
         fxParamStr[HICUT] = std::to_string(fxParam[HICUT]);
         break;
-      case LOCUT:
+      case 4:
         fxParamStr[LOCUT] = std::to_string(fxParam[LOCUT]);
         break;
-      case HIDUMP:
+      case 5:
         fxParamStr[HIDUMP] = std::to_string(fxParam[HIDUMP]);
         break;
       default:
-        fxParamStr[paramIndex] = "";
+        fxParamStr[paramNum] = "";
         break;
     }
   }

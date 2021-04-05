@@ -9,7 +9,7 @@ public:
 
   virtual void deinit() = 0;
 
-  virtual void setParamStr(uint8_t paramIndex) = 0;
+  virtual void setParamStr(uint8_t paramNum) = 0;
 
   virtual void setParam() = 0;
 

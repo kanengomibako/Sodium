@@ -8,18 +8,14 @@
 class fx_phaser : public fx_base
 {
 private:
-  enum paramName {LEVEL, RATE, STAGE,
-      P3,P4,P5,P6,P7,P8,P9,P10,P11,P12,P13,P14,P15,P16,P17,P18,P19};
-  float param[20] = {0.0f, 0.0f, 0.0f,
-      0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0};
-  const int16_t paramMax[20] = {100,100,6,
-      1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1};
-  const int16_t paramMin[20] = {  0, 0, 1,
-      0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0};
-  const string paramName[20] = {
-      "LEVEL", "RATE", "STAGE",
-      "","","","","","","","","","","","","","","","",""};
-  const uint8_t paramIndexMax = 2;
+  const string name = "PHASER";
+  const uint16_t color = COLOR_R; // 赤
+  const string paramName[20] = {"LEVEL", "RATE", "STAGE"};
+  enum paramName {LEVEL, RATE, STAGE};
+  float param[20] = {1, 1, 1};
+  const int16_t paramMax[20] = {100,100,  6};
+  const int16_t paramMin[20] = {  0,  0,  1};
+  const uint8_t paramNumMax = 3;
 
   signalSw bypass;
   triangleWave tri;
@@ -28,13 +24,13 @@ private:
 public:
   fx_phaser()
   {
-    fxNameList[PH] = "PHASER";
-    fxColorList[PH] = 0b1111100000000000; // 赤
   }
 
   virtual void init()
   {
-    fxParamIndexMax = paramIndexMax;
+    fxName = name;
+    fxColor = color;
+    fxParamNumMax = paramNumMax;
     for (int i = 0; i < 20; i++)
     {
       fxParamName[i] = paramName[i];
@@ -49,21 +45,21 @@ public:
   {
   }
 
-  virtual void setParamStr(uint8_t paramIndex)
+  virtual void setParamStr(uint8_t paramNum)
   {
-    switch(paramIndex)
+    switch(paramNum)
     {
-      case LEVEL:
+      case 0:
         fxParamStr[LEVEL] = std::to_string(fxParam[LEVEL]);
         break;
-      case RATE:
+      case 1:
         fxParamStr[RATE] = std::to_string(fxParam[RATE]);
         break;
-      case STAGE:
+      case 2:
         fxParamStr[STAGE] = std::to_string(fxParam[STAGE]*2);
         break;
       default:
-        fxParamStr[paramIndex] = "";
+        fxParamStr[paramNum] = "";
         break;
     }
   }

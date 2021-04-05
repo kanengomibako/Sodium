@@ -8,19 +8,14 @@
 class fx_overdrive : public fx_base
 {
 private:
-  enum paramName {LEVEL, GAIN, TREBLE, BASS,
-    P4,P5,P6,P7,P8,P9,P10,P11,P12,P13,P14,P15,P16,P17,P18,P19};
-  float param[20] = {0.0f, 0.0f, 0.0f, 0.0f,
-      0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0};
-  const int16_t paramMax[20] = {100,100,100,100,
-      0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0};
-  const int16_t paramMin[20] = {  0,  0,  0,  0,
-      0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0};
-  const string paramName[20] = {
-      "LEVEL", "GAIN", "TREBLE",
-      "BASS",
-      "","","","","","","","","","","","","","","",""};
-  const uint8_t paramIndexMax = 3;
+  const string name = "OVERDRIVE";
+  const uint16_t color = COLOR_RG; // 赤緑
+  const string paramName[20] = {"LEVEL", "GAIN", "TREBLE", "BASS"};
+  enum paramName {LEVEL, GAIN, TREBLE, BASS};
+  float param[20] = {1, 1, 1, 1};
+  const int16_t paramMax[20] = {100,100,100,100};
+  const int16_t paramMin[20] = {  0,  0,  0,  0};
+  const uint8_t paramNumMax = 4;
 
   signalSw bypass;
   hpf hpfFixed, hpfBass;
@@ -29,13 +24,13 @@ private:
 public:
   fx_overdrive()
   {
-    fxNameList[OD] = "OVERDRIVE";
-    fxColorList[OD] = 0b1111111111100000; // 赤緑
   }
 
   virtual void init()
   {
-    fxParamIndexMax = paramIndexMax;
+    fxName = name;
+    fxColor = color;
+    fxParamNumMax = paramNumMax;
     for (int i = 0; i < 20; i++)
     {
       fxParamName[i] = paramName[i];
@@ -53,24 +48,24 @@ public:
   {
   }
 
-  virtual void setParamStr(uint8_t paramIndex)
+  virtual void setParamStr(uint8_t paramNum)
   {
-    switch(paramIndex)
+    switch(paramNum)
     {
-      case LEVEL:
+      case 0:
         fxParamStr[LEVEL] = std::to_string(fxParam[LEVEL]);
         break;
-      case GAIN:
+      case 1:
         fxParamStr[GAIN] = std::to_string(fxParam[GAIN]);
         break;
-      case TREBLE:
+      case 2:
         fxParamStr[TREBLE] = std::to_string(fxParam[TREBLE]);
         break;
-      case BASS:
+      case 3:
         fxParamStr[BASS] = std::to_string(fxParam[BASS]);
         break;
       default:
-        fxParamStr[paramIndex] = "";
+        fxParamStr[paramNum] = "";
         break;
     }
   }

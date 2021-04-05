@@ -9,19 +9,14 @@
 class fx_delay : public fx_base
 {
 private:
-  enum paramName {DTIME, ELEVEL, FBACK, TONE, OUTPUT, TAPDIV,
-    P6,P7,P8,P9,P10,P11,P12,P13,P14,P15,P16,P17,P18,P19};
-  float param[20] = {0.0f, 0.0f, 0.0f, 1.0f, 1.0f, 0,
-      0,0,0,0,0,0,0,0,0,0,0,0,0,0};
-  const int16_t paramMax[20] = {1500,100, 99,100,100,  5,
-      0,0,0,0,0,0,0,0,0,0,0,0,0,0};
-  const int16_t paramMin[20] = { 10,  0,  0,  0,  0,  0,
-      0,0,0,0,0,0,0,0,0,0,0,0,0,0};
-  const string paramName[20] = {
-      "TIM", "LEVEL", "F.BACK",
-			"TONE", "OUTPUT","DIV",
-			"","","","","","","","","","","","","",""};
-  const uint8_t paramIndexMax = 5;
+  const string name = "DELAY";
+  const uint16_t color = COLOR_RB; // 赤青
+  const string paramName[20] = {"TIM", "LEVEL", "F.BACK", "TONE", "OUTPUT", "DIV"};
+  enum paramName {DTIME, ELEVEL, FBACK, TONE, OUTPUT, TAPDIV};
+  float param[20] = {1, 1, 1, 1, 1, 1};
+  const int16_t paramMax[20] = {1500,100, 99,100,100,  5};
+  const int16_t paramMin[20] = {  10,  0,  0,  0,  0,  0};
+  const uint8_t paramNumMax = 6;
 
   // 最大ディレイタイム 16bit モノラルで2.5秒程度まで
   const float maxDelayTime = 1500.0f;
@@ -37,13 +32,13 @@ private:
 public:
   fx_delay()
   {
-    fxNameList[DD] = "DELAY";
-    fxColorList[DD] = 0b1111100000011111; // 赤青
   }
 
   virtual void init()
   {
-    fxParamIndexMax = paramIndexMax;
+    fxName = name;
+    fxColor = color;
+    fxParamNumMax = paramNumMax;
     for (int i = 0; i < 20; i++)
     {
       fxParamName[i] = paramName[i];
@@ -61,30 +56,30 @@ public:
     del1.erase();
   }
 
-  virtual void setParamStr(uint8_t paramIndex)
+  virtual void setParamStr(uint8_t paramNum)
   {
-    switch(paramIndex)
+    switch(paramNum)
     {
-      case DTIME:
+      case 0:
         fxParamStr[DTIME] = std::to_string(fxParam[DTIME]);
         break;
-      case ELEVEL:
+      case 1:
         fxParamStr[ELEVEL] = std::to_string(fxParam[ELEVEL]);
         break;
-      case FBACK:
+      case 2:
         fxParamStr[FBACK] = std::to_string(fxParam[FBACK]);
         break;
-      case TONE:
+      case 3:
         fxParamStr[TONE] = std::to_string(fxParam[TONE]);
         break;
-      case OUTPUT:
+      case 4:
         fxParamStr[OUTPUT] = std::to_string(fxParam[OUTPUT]);
         break;
-      case TAPDIV:
+      case 5:
         fxParamStr[TAPDIV] = tapDivStr[fxParam[TAPDIV]];
         break;
       default:
-        fxParamStr[paramIndex] = "";
+        fxParamStr[paramNum] = "";
         break;
     }
   }

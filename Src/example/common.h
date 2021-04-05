@@ -8,7 +8,7 @@ using std::string;
 /* 各定数設定 --------------------------*/
 
 // ペダル名称表示
-#define PEDAL_NAME "Sodium v0.7"
+#define PEDAL_NAME "Sodium v0.9"
 
 // ブロックサイズ まとめて処理を行う数
 #define BLOCK_SIZE 16
@@ -24,15 +24,6 @@ using std::string;
 
 // ステータス情報表示時間 ミリ秒
 #define STATUS_DISP_MSEC 1000
-
-// 最大エフェクト数
-#define MAX_FX_NUM 6
-
-// エフェクト番号割当
-enum FXtype {OD, DD, TR, CE, PH, RV};
-
-// エフェクト有効・無効リスト
-#define FX_ENABLE_SETTING {true, true, true, true, true, true}
 
 // タップテンポ機能 有効1 無効0
 #define TAP_ENABLED 1
@@ -68,20 +59,31 @@ enum FXtype {OD, DD, TR, CE, PH, RV};
 
 /* グローバル変数 --------------------------*/
 
+// fx.cpp で定義
+extern const uint8_t fxNumMax;
+extern int16_t fxAllData[][20];
+
 // user_main.cpp で定義
 extern bool fxOn;
+extern string fxName;
+extern uint16_t fxColor;
 extern int16_t fxParam[];
 extern int16_t fxParamMax[];
 extern int16_t fxParamMin[];
 extern string fxParamName[];
 extern string fxParamStr[];
+extern uint8_t fxParamNumMax;
 extern uint8_t fxNum;
-extern int16_t fxAllData[MAX_FX_NUM][20];
-extern uint8_t fxParamIndexMax;
 extern float tapTime;
 
-// fx.cpp で定義
-extern string fxNameList[MAX_FX_NUM];
-extern uint16_t fxColorList[MAX_FX_NUM];
+/* LED色定義 -----------------------------*/
+
+#define COLOR_RGB 0b1111111111111111; // 赤緑青（白）
+#define COLOR_RG  0b1111111111100000; // 赤緑（黄）
+#define COLOR_BG  0b0000011111111111; // 青緑
+#define COLOR_RB  0b1111100000011111; // 赤青（紫）
+#define COLOR_R   0b1111100000000000; // 赤
+#define COLOR_G   0b0000000000011111; // 緑
+#define COLOR_B   0b0000000000011111; // 青
 
 #endif // COMMON_H
