@@ -41,7 +41,7 @@ public:
   {
     if (x < -1.0f) x = -1.0f; // オーバーフロー防止
     if (x > 0.999f) x = 0.999f;
-    delayArray[wpos] = (int16_t)(x * 32767.0f); // バッファ配列へ16ビット整数で書き込み
+    delayArray[wpos] = (int16_t)(x * 32768.0f); // バッファ配列へ16ビット整数で書き込み
     wpos++; // 書込位置を1つ進める
     if (wpos == maxDelaySample) wpos = 0; // 最大サンプル数までで0に戻す
   }
@@ -53,7 +53,7 @@ public:
     uint32_t rpos; // read position 読出位置
     if (wpos >= interval) rpos = wpos - interval;  // 読出位置を取得
     else rpos = wpos - interval + maxDelaySample;
-    return ((float) delayArray[rpos]) / 32767.0f; // バッファ配列からfloatで読み出し
+    return ((float) delayArray[rpos]) / 32768.0f; // バッファ配列からfloatで読み出し
   }
 
   float readLerp(float delayTime) // 線形補間して読み出し コーラス等に利用
@@ -67,12 +67,12 @@ public:
     uint32_t rpos1 = rpos0 + 1;
     if (rpos1 == maxDelaySample) rpos1 = 0;
     float t = rposF - (float)rpos0;  // 線形補間用係数
-    return ((float)delayArray[rpos0] + t * (float)(delayArray[rpos1] - delayArray[rpos0])) / 32767.0f;
+    return ((float)delayArray[rpos0] + t * (float)(delayArray[rpos1] - delayArray[rpos0])) / 32768.0f;
   }
 
   float readFixed() // 固定時間（最大ディレイタイム）で読み出し
   {
-    return ((float) delayArray[wpos]) / 32767.0f; // バッファ配列からfloatで読み出し
+    return ((float) delayArray[wpos]) / 32768.0f; // バッファ配列からfloatで読み出し
   }
 
 };

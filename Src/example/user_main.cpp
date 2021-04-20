@@ -131,17 +131,32 @@ void mainInit() // <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<最初に1回の�
 
 void mainLoop() // <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<メインループ
 {
-
   ssd1306_Fill(Black); // 一旦画面表示を全て消す
 
   if (mode == NORMAL) // 通常モード *****************************
   {
     uint8_t fxPage = fxParamNum / 6; // エフェクトパラメータページ番号
 
-    // ステータス表示------------------------------
-    if (callbackCount > statusDispCount) // ステータス表示が変わり一定時間経過後、デフォルト表示に戻す
+    // ステータス表示 デフォルト表示はfxName ------------------------------
+    static bool statusChangeStart = false; // ステータス表示変更開始フラグ
+    static string tmpStatus = ""; // ステータス表示点滅用一時変数
+
+    if (statusStr != fxName) // エフェクト名以外のステータス表示
     {
-      statusStr = fxName; // エフェクト名表示
+      if (!statusChangeStart) // ステータス表示変更開始処理
+      {
+        callbackCount = 0;
+        statusChangeStart = true;
+        tmpStatus = statusStr;
+      }
+
+      if (callbackCount > statusDispCount) // 一定時間経過後、デフォルト表示に戻す
+      {
+        statusStr = fxName;
+        statusChangeStart = false;
+      }
+      else if ((callbackCount / (statusDispCount/6)) % 2 == 0) statusStr = tmpStatus; // 一定時間経過まで点滅
+      else statusStr = "";
     }
     ssd1306_xyWriteStrWT(fxNameXY[0], fxNameXY[1], statusStr, Font_7x10);
 
@@ -240,6 +255,7 @@ void fxChange() // <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<エフェクト変
   cursorPosition = 0;
   fxInit();
   fxChangeFlag = 0;
+  statusStr = fxName;
 }
 
 void swProcess(uint8_t num) // <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<スイッチ処理
@@ -472,8 +488,14 @@ void mainProcess(uint16_t start_sample) // <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
 
   for (uint16_t i = 0; i < BLOCK_SIZE; i++)
   {
-    if (xL[i] < -1.0f) xL[i] = -1.0f; // オーバーフロー防止
-    if (xL[i] > 0.99f) xL[i] = 0.99f;
+    if (xL[i] < -1.0f || xL[i] > 0.999f) // 出力クリップ検出
+    {
+#if CLIP_DETECT_ENABLED
+      statusStr = "CLIPPED!"; // ステータス表示
+#endif
+      if (xL[i] < 0) xL[i] = -1.0f; // オーバーフロー防止
+      else xL[i] = 0.999f;
+    }
 
     uint16_t m = (start_sample + i) * 2; // データ配列の偶数添字計算 Lch（Rch不使用）
 
@@ -522,7 +544,7 @@ void loadData() // <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<データ読み込
 void saveData() // <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<データ保存
 {
   mute();
-  ssd1306_xyWriteStrWT(fxNameXY[0], fxNameXY[1], "WRITING... ", Font_7x10);
+  HAL_GPIO_TogglePin(LED_RED_GPIO_Port, LED_RED_Pin); // 処理開始 赤LED点灯切替
 
   eraseData(); // フラッシュ消去
 
@@ -547,9 +569,8 @@ void saveData() // <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<データ保存
 
   HAL_FLASH_Lock(); // フラッシュ ロック
 
-  statusStr = "STORED!    "; // ステータス表示
-  callbackCount = 0;
-
+  HAL_GPIO_TogglePin(LED_RED_GPIO_Port, LED_RED_Pin); // 処理終了 赤LED点灯切替
+  statusStr = "STORED!"; // ステータス表示
   DWT->CYCCNT = 0; // CPU使用率計算に影響しないように、CPUサイクル数を一旦リセット
 }
 

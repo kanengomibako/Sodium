@@ -6,11 +6,11 @@
 // ライブラリ読込
 #include "lib_calc.hpp"
 
-class fx_boost : public fx_base // クリーンブースター /////////////////////////////////
+class fx_volume : public fx_base // 音量調整 出力クリップに注意 ///////////////////////
 {
 private:
   // 基本設定 ----------------------------------------------
-  const string name = "BOOSTER";      // エフェクト名
+  const string name = "VOLUME";       // エフェクト名
   const uint16_t color = COLOR_R;     // エフェクトON時のLED色
   const string paramName[20] = {"G"}; // パラメータ名
   enum paramName {GAIN};              // パラメータ名（配列の添字 識別用）
@@ -23,10 +23,6 @@ private:
   signalSw bypass;
 
 public:
-  fx_boost() // コンストラクタ ///////////////////////////////////////////////////////
-  {
-  }
-
   virtual void init() // 初期化処理 //////////////////////////////////////////////////
   {
     // 現在のエフェクト用の変数に呼び出したエフェクトの設定を読み込ませる
@@ -44,7 +40,7 @@ public:
       else fxParam[i] = fxAllData[fxNum][i];
     }
 
-    // ディレイタイム最大値やフィルタ周波数の初期値などをここで設定
+    // ディレイタイム分のメモリ確保やフィルタ周波数の固定値等をここで設定
 
   }
 

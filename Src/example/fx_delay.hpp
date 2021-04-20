@@ -30,10 +30,6 @@ private:
   lpf2nd lpf2ndTone;
 
 public:
-  fx_delay()
-  {
-  }
-
   virtual void init()
   {
     fxName = name;
@@ -48,7 +44,7 @@ public:
       else fxParam[i] = fxAllData[fxNum][i];
     }
 
-    del1.set(maxDelayTime); // 最大ディレイタイム設定
+    del1.set(maxDelayTime); // 最大ディレイタイム分のメモリ確保
   }
 
   virtual void deinit()

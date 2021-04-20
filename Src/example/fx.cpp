@@ -4,7 +4,7 @@
 #include "fx_base.hpp"
 
 // 各エフェクト 派生クラス ヘッダー
-#include "fx_boost.hpp"
+#include "fx_volume.hpp"
 #include "fx_overdrive.hpp"
 #include "fx_delay.hpp"
 #include "fx_tremolo.hpp"
@@ -13,18 +13,17 @@
 #include "fx_reverb.hpp"
 
 // 各エフェクト グローバルインスタンス生成
-static fx_boost bo1;
-static fx_overdrive od1;
-static fx_delay dd1;
-static fx_tremolo tr1;
-static fx_chorus ce1;
-static fx_phaser ph1;
-static fx_reverb rv1;
+fx_volume vo1;
+fx_overdrive od1;
+fx_delay dd1;
+fx_tremolo tr1;
+fx_chorus ce1;
+fx_phaser ph1;
+fx_reverb rv1;
 
 // 各エフェクト用ポインタ配列を生成(&を付ける)
 // 使用するエフェクトを記載、順番入れ替え可
-static fx_base* effect[] = {&bo1, &od1, &dd1, &tr1, &ce1, &ph1, &rv1};
-
+fx_base* effect[] = {&vo1, &od1, &dd1, &tr1, &ce1, &ph1, &rv1};
 
 const uint8_t fxNumMax = sizeof(effect) / sizeof(effect[0]); // エフェクト最大数を自動計算
 

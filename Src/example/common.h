@@ -8,7 +8,7 @@ using std::string;
 /* 各定数設定 --------------------------*/
 
 // ペダル名称表示
-#define PEDAL_NAME "Sodium v0.9"
+#define PEDAL_NAME "Sodium v1.0"
 
 // ブロックサイズ まとめて処理を行う数
 #define BLOCK_SIZE 16
@@ -33,6 +33,9 @@ using std::string;
 
 // チューナー機能 有効1 無効0
 #define TUNER_ENABLED 1
+
+// 出力クリップ検出機能 有効1 無効0
+#define CLIP_DETECT_ENABLED 0
 
 // データ保存先 セクターと開始アドレス
 #define DATA_SECTOR FLASH_SECTOR_5

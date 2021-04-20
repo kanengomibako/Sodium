@@ -40,10 +40,6 @@ inline float mixPot(uint16_t pot, float dBmin)
 class signalSw
 {
 public:
-  signalSw()
-  {
-  }
-
   float process(float x, float fx, bool sw)
   {
     static uint8_t count = 0;
