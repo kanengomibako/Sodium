@@ -1,5 +1,5 @@
-#ifndef FX_BOOST_HPP
-#define FX_BOOST_HPP
+#ifndef FX_VOLUME_HPP
+#define FX_VOLUME_HPP
 
 #include "common.h"
 
@@ -122,4 +122,4 @@ public:
 
 };
 
-#endif // FX_BOOST_HPP
+#endif // FX_VOLUME_HPP
