@@ -411,9 +411,10 @@ public:
     b2 = ( A * ((A + 1.0f) + (A - 1.0f) * cos - beta * sin)) * norm;
   }
 
-  void setNF(float fc, float bw)
+  void setNF(float fc, float q)
   {
-    float alpha = bqAlphaBW(fc,bw);
+    //float alpha = bqAlphaBW(fc,bw);
+    float alpha = bqAlphaQ(fc,q);
     float cos = bqCosOmega(fc);
 
     float norm = 1.0f / (1.0f + alpha);

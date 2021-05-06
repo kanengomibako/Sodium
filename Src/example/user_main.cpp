@@ -473,6 +473,10 @@ void mainProcess(uint16_t start_sample) // <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
 
     // 受信データを計算用データ配列へ 値を-1～+1(float)へ変更
     xL[i] = (float)swap16(RxBuffer[m]) / 2147483648.0f;
+
+#if CLIP_DETECT_ENABLED  // 入力クリップ検出 ステータス表示
+      if (xL[i] < -0.999f || xL[i] > 0.999f) statusStr = "IN CLIPPED!";
+#endif
   }
 
   if (mode == TUNER)
@@ -491,7 +495,7 @@ void mainProcess(uint16_t start_sample) // <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
     if (xL[i] < -1.0f || xL[i] > 0.999f) // 出力クリップ検出
     {
 #if CLIP_DETECT_ENABLED
-      statusStr = "CLIPPED!"; // ステータス表示
+      statusStr = "OUT CLIPPED!"; // 出力クリップ ステータス表示
 #endif
       if (xL[i] < 0) xL[i] = -1.0f; // オーバーフロー防止
       else xL[i] = 0.999f;
