@@ -8,6 +8,7 @@
 #include "fx_filter.hpp"
 #include "fx_bqfilter.hpp"
 #include "fx_overdrive.hpp"
+#include "fx_distortion.hpp"
 #include "fx_delay.hpp"
 #include "fx_tremolo.hpp"
 #include "fx_chorus.hpp"
@@ -19,6 +20,7 @@ fx_volume vo1;
 fx_filter fl1;
 fx_bqfilter bq1;
 fx_overdrive od1;
+fx_distortion ds1;
 fx_delay dd1;
 fx_tremolo tr1;
 fx_chorus ce1;
@@ -27,7 +29,7 @@ fx_reverb rv1;
 
 // 各エフェクト用ポインタ配列を生成(&を付ける)
 // 使用するエフェクトを記載、順番入れ替え可
-fx_base* effect[] = {&fl1, &bq1, &od1, &dd1, &tr1, &ce1, &ph1, &rv1};
+fx_base* effect[] = {&od1, &ds1, &dd1, &tr1, &ce1, &ph1, &rv1};
 
 const uint8_t fxNumMax = sizeof(effect) / sizeof(effect[0]); // エフェクト最大数を自動計算
 

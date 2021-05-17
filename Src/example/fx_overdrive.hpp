@@ -18,14 +18,10 @@ private:
   const uint8_t paramNumMax = 4;
 
   signalSw bypass;
-  hpf hpfFixed, hpfBass;
-  lpf lpfFixed, lpfTreble;
+  hpf hpfFixed, hpfBass; // 出力ローカット、入力BASS調整
+  lpf lpfFixed, lpfTreble; // 入力ハイカット、出力TREBLE調整
 
 public:
-  fx_overdrive()
-  {
-  }
-
   virtual void init()
   {
     fxName = name;
@@ -40,8 +36,6 @@ public:
       else fxParam[i] = fxAllData[fxNum][i];
     }
 
-    hpfFixed.set(10.0f);
-    lpfFixed.set(5000.0f);
   }
 
   virtual void deinit()
@@ -77,22 +71,28 @@ public:
     switch(count)
     {
       case 0:
-        param[LEVEL] = logPot(fxParam[LEVEL], -40.0f, 10.0f);  // LEVEL -40...10 dB
+        param[LEVEL] = logPot(fxParam[LEVEL], -50.0f, 0.0f);  // LEVEL -50～0 dB
         break;
       case 1:
-        param[GAIN] = logPot(fxParam[GAIN], -6.0f, 40.0f); // GAIN -6...+40 dB
+        param[GAIN] = logPot(fxParam[GAIN], 20.0f, 60.0f); // GAIN 20～60 dB
         break;
       case 2:
-        param[TREBLE] = 10000.0f * logPot(fxParam[TREBLE], -28.0f, 0.0f); // TREBLE LPF 400 ~ 10k Hz
+        param[TREBLE] = 10000.0f * logPot(fxParam[TREBLE], -30.0f, 0.0f); // TREBLE LPF 320～10k Hz
         break;
       case 3:
-        param[BASS] = 1000.0f * logPot(fxParam[BASS], 0.0f, -20.0f); // BASS HPF 100 ~ 1000 Hz
+        param[BASS] = 2000.0f * logPot(fxParam[BASS], 0.0f, -20.0f); // BASS HPF 200～2000 Hz
         break;
       case 4:
         lpfTreble.set(param[TREBLE]);
         break;
       case 5:
         hpfBass.set(param[BASS]);
+        break;
+      case 6:
+        lpfFixed.set(4000.0f); // 入力ハイカット 固定値
+        break;
+      case 7:
+        hpfFixed.set(30.0f); // 出力ローカット 固定値
         break;
       default:
         break;
@@ -107,21 +107,14 @@ public:
 
     for (uint16_t i = 0; i < BLOCK_SIZE; i++)
     {
-      fxL[i] = hpfBass.process(xL[i]); // BASS
-      fxL[i] = lpfFixed.process(fxL[i]); // 高域カット
-  	  fxL[i] = 5.0f * fxL[i]; // 初期固定ゲイン
-
-  	  if (fxL[i] < -0.5f) fxL[i] = -0.25f; // 2次関数による波形の非対称変形
-  	  else fxL[i] = fxL[i] * fxL[i] + fxL[i];
-
-  	  fxL[i] = param[GAIN] * hpfFixed.process(fxL[i]); // GAIN、直流カット
-
-  	  if (fxL[i] < -1.0f) fxL[i] = -1.0f; // 2次関数による対称ソフトクリップ
-  	  else if (fxL[i] < 0.0f) fxL[i] = fxL[i] * fxL[i] + 2.0f * fxL[i];
-      else if (fxL[i] < 1.0f) fxL[i] = 2.0f * fxL[i] - fxL[i] * fxL[i];
-      else fxL[i] = 1.0f;
-
-  	  fxL[i] = param[LEVEL] * lpfTreble.process(fxL[i]); // LEVEL, TREBLE
+      fxL[i] = xL[i];
+      fxL[i] = hpfBass.process(fxL[i]);   // 入力ローカット BASS
+      fxL[i] = lpfFixed.process(fxL[i]);  // 入力ハイカット 固定値
+  	  fxL[i] = param[GAIN] * fxL[i];      // GAIN
+      fxL[i] = atanf(fxL[i] + 0.5f);      // arctanによるクリッピング、非対称化
+      fxL[i] = hpfFixed.process(fxL[i]);  // 出力ローカット 固定値 直流カット
+      fxL[i] = lpfTreble.process(fxL[i]); // 出力ハイカット TREBLE
+  	  fxL[i] = param[LEVEL] * fxL[i];     // LEVEL
 
       xL[i] = bypass.process(xL[i], fxL[i], fxOn);
     }

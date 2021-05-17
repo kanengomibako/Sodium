@@ -28,12 +28,13 @@ inline float logPot(uint16_t pot, float dBmin, float dBmax)
 
 inline float mixPot(uint16_t pot, float dBmin)
 {
-  // パラメータの値0～100をMIX倍率へ割り当てる dBminは-6以下の負の値
-  float a = (-6.0f - dBmin) * 0.02f; // dB増加の傾きを計算
-  if      (pot ==   0) return 0.0f;
-  else if (pot <=  50) return dbToGain((float)pot * a + dBmin); // dBmin ～ -6dB
-  else if (pot <  100) return 1.0f - dbToGain((float)(100 - pot) * a + dBmin);
-  else                 return 1.0f;
+  // パラメータの値0～100をMIX倍率へ割り当てる
+  // dBminはdB変化の初期値で-6未満の値
+  float a = (-6.0206f - dBmin) * 0.02f; // dB変化の傾きを計算
+  if      (pot ==  0) return 0.0f;
+  else if (pot <  50) return dbToGain((float)pot * a + dBmin); // dBmin ～ -6dB
+  else if (pot < 100) return 1.0f - dbToGain((float)(100 - pot) * a + dBmin);
+  else                return 1.0f;
 }
 
 /* ポップノイズ対策のため、0.01ずつ音量変更しスイッチ操作する（エフェクトバイパス等）--------------*/
