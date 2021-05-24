@@ -26,10 +26,6 @@ private:
   hpf hpfOutL, hpfOutR;
 
 public:
-  fx_reverb()
-  {
-  }
-
   virtual void init()
   {
     fxName = name;
@@ -132,24 +128,23 @@ public:
 
   virtual void process(float xL[], float xR[])
   {
-    float fxL[BLOCK_SIZE] = {};
-    float fxR[BLOCK_SIZE] = {}; // Rch 不使用
-
-    float ap, am, bp, bm, cp, cm, dp, dm, ep, em,
-    fp, fm, gp, gm, hd, id, jd, kd, out_l, out_r;
-
     setParam();
 
     for (uint16_t i = 0; i < BLOCK_SIZE; i++)
     {
-      fxL[i] = bypassIn.process(0.0f, xL[i], fxOn);
-      fxL[i] = 0.25f * lpfIn.process(fxL[i]);
+      float fxL, fxR; // fxR(Rch) 不使用
+
+      float ap, am, bp, bm, cp, cm, dp, dm, ep, em,
+      fp, fm, gp, gm, hd, id, jd, kd, outL, outR;
+
+      fxL = bypassIn.process(0.0f, xL[i], fxOn);
+      fxL = 0.25f * lpfIn.process(fxL);
 
       // Early Reflection
 
-      del[0].write(fxL[i]);
-      ap = fxL[i] + del[0].readFixed();
-      am = fxL[i] - del[0].readFixed();
+      del[0].write(fxL);
+      ap = fxL + del[0].readFixed();
+      am = fxL - del[0].readFixed();
       del[1].write(am);
       bp = ap + del[1].readFixed();
       bm = ap - del[1].readFixed();
@@ -178,11 +173,11 @@ public:
       kd = del[9].readFixed();
       kd = lpfFB[3].process(kd);
 
-      out_l = ep + hd * param[FBACK];
-      out_r = del[5].readFixed() + id * param[FBACK];
+      outL = ep + hd * param[FBACK];
+      outR = del[5].readFixed() + id * param[FBACK];
 
-      fp = out_l + out_r;
-      fm = out_l - out_r;
+      fp = outL + outR;
+      fm = outL - outR;
       gp = jd * param[FBACK] + kd * param[FBACK];
       gm = jd * param[FBACK] - kd * param[FBACK];
       del[6].write(fp + gp);
@@ -190,11 +185,11 @@ public:
       del[8].write(fp - gp);
       del[9].write(fm - gm);
 
-      fxL[i] = (1.0f - param[MIX]) * xL[i] + param[MIX] * hpfOutL.process(out_l);
-      fxR[i] = (1.0f - param[MIX]) * xL[i] + param[MIX] * hpfOutR.process(out_r);
+      fxL = (1.0f - param[MIX]) * xL[i] + param[MIX] * hpfOutL.process(outL);
+      fxR = (1.0f - param[MIX]) * xL[i] + param[MIX] * hpfOutR.process(outR);
 
-      xL[i] = bypassOutL.process(xL[i], param[LEVEL] * fxL[i], fxOn);
-      xR[i] = bypassOutR.process(xR[i], param[LEVEL] * fxR[i], fxOn);
+      xL[i] = bypassOutL.process(xL[i], param[LEVEL] * fxL, fxOn);
+      xR[i] = bypassOutR.process(xR[i], param[LEVEL] * fxR, fxOn);
     }
   }
 

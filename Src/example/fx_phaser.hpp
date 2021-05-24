@@ -22,10 +22,6 @@ private:
   apf apfx[12];
 
 public:
-  fx_phaser()
-  {
-  }
-
   virtual void init()
   {
     fxName = name;
@@ -56,7 +52,7 @@ public:
         fxParamStr[RATE] = std::to_string(fxParam[RATE]);
         break;
       case 2:
-        fxParamStr[STAGE] = std::to_string(fxParam[STAGE]*2);
+        fxParamStr[STAGE] = std::to_string(fxParam[STAGE] * 2);
         break;
       default:
         fxParamStr[paramNum] = "";
@@ -71,16 +67,16 @@ public:
     switch(count)
     {
       case 0:
-        param[LEVEL] = logPot(fxParam[LEVEL], -20.0f, 20.0f);  // LEVEL -20 ～ 20dB
+        param[LEVEL] = logPot(fxParam[LEVEL], -20.0f, 20.0f);  // LEVEL -20～20 dB
         break;
       case 1:
-        param[RATE] = 0.02f * (105.0f - (float)fxParam[RATE]); // RATE 2s
+        param[RATE] = 0.02f * (105.0f - (float)fxParam[RATE]); // RATE 周期 2～0.1 秒
         break;
       case 2:
-        param[STAGE] = 0.1f + (float)fxParam[STAGE] * 2.0f; // STAGE 2, 4, 6, 8, 12
+        param[STAGE] = 0.1f + (float)fxParam[STAGE] * 2.0f; // STAGE 2～12 後で整数へ変換
         break;
       case 3:
-        tri.set(param[RATE]);
+        tri.set(1.0f / param[RATE]); // 三角波 周波数設定
         break;
       default:
         break;
@@ -89,22 +85,25 @@ public:
 
   virtual void process(float xL[], float xR[])
   {
-    float fxL[BLOCK_SIZE] = {};
-
     setParam();
 
     for (uint16_t i = 0; i < BLOCK_SIZE; i++)
     {
-      fxL[i] = xL[i];
-      float freq = 200.0f * dbToGain(20.0f * tri.output()); // APF周波数 200～2000Hz
+      float fxL = xL[i];
 
-      for (uint8_t j = 0; j < (uint8_t)param[STAGE]; j++) // 段数分APFをかける
+      float lfo = 20.0f * tri.output();    // LFO 0～20 三角波
+      float freq = 200.0f * dbToGain(lfo); // APF周波数 200～2000Hz 指数的変化
+
+      for (uint8_t j = 0; j < (uint8_t)param[STAGE]; j++) // 段数分APF繰り返し
       {
-        apfx[j].set(freq); // APF周波数を設定
-        fxL[i] = apfx[j].process(fxL[i]); // APF実行
+        apfx[j].set(freq);          // APF周波数設定
+        fxL = apfx[j].process(fxL); // APF実行
       }
-      fxL[i] = 0.7f * (xL[i] + fxL[i]); // 原音ミックス
-      xL[i] = bypass.process(xL[i], fxL[i] * param[LEVEL], fxOn);
+
+      fxL = 0.7f * (xL[i] + fxL); // 原音ミックス、音量調整
+      fxL = param[LEVEL] * fxL;   // LEVEL
+
+      xL[i] = bypass.process(xL[i], fxL, fxOn);
     }
   }
 

@@ -101,16 +101,14 @@ public:
 
   virtual void process(float xL[], float xR[])
   {
-    float fxL[BLOCK_SIZE] = {};
-
     setParam();
 
     for (uint16_t i = 0; i < BLOCK_SIZE; i++)
     {
-      fxL[i] = xL[i];
-      fxL[i] = bqf1.process(fxL[i]); // フィルタ実行
-  	  fxL[i] = param[LEVEL] * fxL[i]; // LEVEL
-      xL[i] = bypass.process(xL[i], fxL[i], fxOn);
+      float fxL = xL[i];
+      fxL = bqf1.process(fxL); // フィルタ実行
+      fxL = param[LEVEL] * fxL; // LEVEL
+      xL[i] = bypass.process(xL[i], fxL, fxOn);
     }
   }
 

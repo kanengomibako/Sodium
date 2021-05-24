@@ -108,15 +108,15 @@ public:
 
   virtual void process(float xL[], float xR[]) // エフェクト処理 ///////////////////////
   {
-    float fxL[BLOCK_SIZE] = {}; // エフェクト処理を行う方の配列
-
     setParam(); // パラメータ数値計算
 
     for (uint16_t i = 0; i < BLOCK_SIZE; i++)
     {
-      fxL[i] = param[GAIN] * xL[i]; // ゲイン調整
+      float fxL = xL[i]; // エフェクト処理を行う方の一時変数
 
-      xL[i] = bypass.process(xL[i], fxL[i], fxOn); // バイパス
+      fxL = param[GAIN] * fxL; // ゲイン調整
+
+      xL[i] = bypass.process(xL[i], fxL, fxOn); // バイパス
     }
   }
 

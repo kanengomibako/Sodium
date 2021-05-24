@@ -101,22 +101,21 @@ public:
 
   virtual void process(float xL[], float xR[])
   {
-    float fxL[BLOCK_SIZE] = {};
-
     setParam();
 
     for (uint16_t i = 0; i < BLOCK_SIZE; i++)
     {
-      fxL[i] = xL[i];
-      fxL[i] = hpfBass.process(fxL[i]);   // 入力ローカット BASS
-      fxL[i] = lpfFixed.process(fxL[i]);  // 入力ハイカット 固定値
-  	  fxL[i] = param[GAIN] * fxL[i];      // GAIN
-      fxL[i] = atanf(fxL[i] + 0.5f);      // arctanによるクリッピング、非対称化
-      fxL[i] = hpfFixed.process(fxL[i]);  // 出力ローカット 固定値 直流カット
-      fxL[i] = lpfTreble.process(fxL[i]); // 出力ハイカット TREBLE
-  	  fxL[i] = param[LEVEL] * fxL[i];     // LEVEL
+      float fxL = xL[i];
 
-      xL[i] = bypass.process(xL[i], fxL[i], fxOn);
+      fxL = hpfBass.process(fxL);   // 入力ローカット BASS
+      fxL = lpfFixed.process(fxL);  // 入力ハイカット 固定値
+      fxL = param[GAIN] * fxL;      // GAIN
+      fxL = atanf(fxL + 0.5f);      // arctanによるクリッピング、非対称化
+      fxL = hpfFixed.process(fxL);  // 出力ローカット 固定値 直流カット
+      fxL = lpfTreble.process(fxL); // 出力ハイカット TREBLE
+      fxL = param[LEVEL] * fxL;     // LEVEL
+
+      xL[i] = bypass.process(xL[i], fxL, fxOn);
     }
   }
 

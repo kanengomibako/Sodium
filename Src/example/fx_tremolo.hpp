@@ -21,10 +21,6 @@ private:
   triangleWave tri;
 
 public:
-  fx_tremolo()
-  {
-  }
-
   virtual void init()
   {
     fxParamNumMax = paramNumMax;
@@ -73,19 +69,19 @@ public:
     switch(count)
     {
       case 0:
-        param[LEVEL] = logPot(fxParam[LEVEL], -20.0f, 20.0f);  // LEVEL -20 ～ 20dB
+        param[LEVEL] = logPot(fxParam[LEVEL], -20.0f, 20.0f);  // LEVEL -20～20 dB
         break;
       case 1:
-        param[RATE] = 0.01f * (105.0f - (float)fxParam[RATE]); // Rate 0.05s ～ 1.05s
+        param[RATE] = 0.01f * (105.0f - (float)fxParam[RATE]); // RATE 周期 1.05～0.05 秒
         break;
       case 2:
-        param[DEPTH] = (float)fxParam[DEPTH] * 0.1f; // Depth ±10dB
+        param[DEPTH] = (float)fxParam[DEPTH] * 0.1f; // DEPTH -10～10 dB
         break;
       case 3:
-        param[WAVE] = logPot(fxParam[WAVE], 0.0f, 50.0f); // Wave 三角波～矩形波変形
+        param[WAVE] = logPot(fxParam[WAVE], 0.0f, 50.0f); // WAVE 三角波～矩形波変形
         break;
       case 4:
-        tri.set(param[RATE]);
+        tri.set(1.0f / param[RATE]); // 三角波 周波数設定
         break;
       default:
         break;
@@ -94,18 +90,22 @@ public:
 
   virtual void process(float xL[], float xR[])
   {
-    float fxL[BLOCK_SIZE] = {};
-
     setParam();
 
     for (uint16_t i = 0; i < BLOCK_SIZE; i++)
     {
-      float gain = 2.0f * (tri.output() - 0.5f); // -1 ～ 1 dB LFO
-      gain = clip(gain * param[WAVE], -1.0f, 1.0f); // 三角波～矩形波変形
-      gain = gain * param[DEPTH]; // gain -10 ～ 10 dB
+      float fxL = xL[i];
 
-      fxL[i] = param[LEVEL] * xL[i] * dbToGain(gain); // LEVEL
-      xL[i] = bypass.process(xL[i], fxL[i], fxOn);
+      float gain = 2.0f * tri.output() - 1.0f; // LFO -1～1 三角波
+      gain = param[WAVE] * gain;     // 三角波を増幅
+      if (gain > 1.0f) gain = 1.0f;  // クリッピング（矩形波に近い形へ）
+      if (gain < -1.0f) gain = -1.0f;
+      gain = param[DEPTH] * gain; // DEPTH -10～10 dB
+
+      fxL = dbToGain(gain) * fxL; // 音量を揺らす
+      fxL = param[LEVEL] * fxL;   // LEVEL
+
+      xL[i] = bypass.process(xL[i], fxL, fxOn);
     }
   }
 

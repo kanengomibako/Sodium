@@ -101,32 +101,30 @@ public:
 
   virtual void process(float xL[], float xR[])
   {
-    float fxL[BLOCK_SIZE] = {};
-
     setParam();
 
     for (uint16_t i = 0; i < BLOCK_SIZE; i++)
     {
-      fxL[i] = xL[i];
-      fxL[i] = hpf1.process(fxL[i]); // ローカット1
-      fxL[i] = lpf1.process(fxL[i]); // ハイカット1
-  	  fxL[i] = 10.0f * fxL[i]; // 1段目固定ゲイン
+      float fxL = xL[i];
+      fxL = hpf1.process(fxL); // ローカット1
+      fxL = lpf1.process(fxL); // ハイカット1
+      fxL = 10.0f * fxL; // 1段目固定ゲイン
 
-  	  if (fxL[i] < -0.5f) fxL[i] = -0.25f; // 2次関数による波形の非対称変形
-  	  else fxL[i] = fxL[i] * fxL[i] + fxL[i];
+      if (fxL < -0.5f) fxL = -0.25f; // 2次関数による波形の非対称変形
+      else fxL = fxL * fxL + fxL;
 
-      fxL[i] = hpf2.process(fxL[i]); // ローカット2 直流カット
-      fxL[i] = lpf2.process(fxL[i]); // ハイカット2
-  	  fxL[i] = param[GAIN] * fxL[i]; // GAIN
+      fxL = hpf2.process(fxL); // ローカット2 直流カット
+      fxL = lpf2.process(fxL); // ハイカット2
+      fxL = param[GAIN] * fxL; // GAIN
 
-      fxL[i] = tanhf(fxL[i]); // tanhによる対称クリッピング
+      fxL = tanhf(fxL); // tanhによる対称クリッピング
 
-  	  fxL[i] = param[TONE] * hpfTone.process(fxL[i])        // TONE
-  	      + (1.0f - param[TONE]) * lpfTone.process(fxL[i]); // LPF側とHPF側をミックス
+      fxL = param[TONE] * hpfTone.process(fxL)        // TONE
+          + (1.0f - param[TONE]) * lpfTone.process(fxL); // LPF側とHPF側をミックス
 
-      fxL[i] = param[LEVEL] * fxL[i]; // LEVEL
+      fxL = param[LEVEL] * fxL; // LEVEL
 
-      xL[i] = bypass.process(xL[i], fxL[i], fxOn);
+      xL[i] = bypass.process(xL[i], fxL, fxOn);
     }
   }
 

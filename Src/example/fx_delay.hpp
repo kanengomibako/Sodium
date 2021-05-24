@@ -124,20 +124,22 @@ public:
 
   virtual void process(float xL[], float xR[])
   {
-    float fxL[BLOCK_SIZE] = {};
-
     setParam();
 
     for (uint16_t i = 0; i < BLOCK_SIZE; i++)
     {
-      fxL[i] = del1.read(param[DTIME]); // ディレイ音読み込み
-      fxL[i] = lpf2ndTone.process(fxL[i]); // ディレイ音のTONE（ハイカット）
+      float fxL = xL[i];
+
+      fxL = del1.read(param[DTIME]); // ディレイ音読み込み
+      fxL = lpf2ndTone.process(fxL); // ディレイ音のTONE（ハイカット）
 
       // ディレイ音と原音をディレイバッファに書き込み、原音はエフェクトオン時のみ書き込む
-      del1.write(bypassIn.process(0.0f, xL[i], fxOn) + param[FBACK] * fxL[i]);
+      del1.write(bypassIn.process(0.0f, xL[i], fxOn) + param[FBACK] * fxL);
 
-      fxL[i] = param[OUTPUT] * (xL[i] + fxL[i] * param[ELEVEL]); // マスターボリューム ディレイ音レベル
-      xL[i] = bypassOut.process(xL[i], fxL[i], fxOn);
+      fxL = param[ELEVEL] * fxL;           // ディレイ音レベル
+      fxL = param[OUTPUT] * (xL[i] + fxL); // マスターボリューム
+
+      xL[i] = bypassOut.process(xL[i], fxL, fxOn);
     }
   }
 };

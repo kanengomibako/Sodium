@@ -1,25 +1,27 @@
-#ifndef FX_FILTER_HPP
-#define FX_FILTER_HPP
+#ifndef FX_OSCILLATOR_HPP
+#define FX_OSCILLATOR_HPP
 
 #include "common.h"
 #include "lib_calc.hpp"
-#include "lib_filter.hpp"
+#include "lib_osc.hpp"
 
-class fx_filter : public fx_base
+class fx_oscillator : public fx_base
 {
 private:
-  const string name = "FILTER";
-  const uint16_t color = COLOR_G; // 緑
-  const string paramName[20] = {"LV", "LPF", "HPF"};
-  enum paramName {LEVEL, LPF, HPF};
+  const string name = "OSCILLATOR";
+  const uint16_t color = COLOR_B; // 青
+  const string paramName[20] = {"LEVEL", "FREQ", "TYPE"};
+  enum paramName {LEVEL, FREQ, TYPE};
   float param[20] = {1, 1, 1};
-  const int16_t paramMax[20] = { 20, 99,100};
-  const int16_t paramMin[20] = {-20,  1,  1};
+  const int16_t paramMax[20] = {100,200,  2};
+  const int16_t paramMin[20] = {  0,  2,  0};
   const uint8_t paramNumMax = 3;
 
+  const string typeName[3] = {"SAW","TRI","SIN"};
   signalSw bypass;
-  lpf lpf1;
-  hpf hpf1;
+  sawWave saw;
+  sineWave sin;
+  triangleWave tri;
 
 public:
   virtual void init()
@@ -35,6 +37,7 @@ public:
       if (fxAllData[fxNum][i] < paramMin[i] || fxAllData[fxNum][i] > paramMax[i]) fxParam[i] = paramMin[i];
       else fxParam[i] = fxAllData[fxNum][i];
     }
+
   }
 
   virtual void deinit()
@@ -47,13 +50,12 @@ public:
     {
       case 0:
         fxParamStr[LEVEL] = std::to_string(fxParam[LEVEL]);
-        if (fxParam[LEVEL] > 0) fxParamStr[LEVEL] = "+" + fxParamStr[LEVEL];
         break;
       case 1:
-        fxParamStr[LPF] = std::to_string(fxParam[LPF] * 100);
+        fxParamStr[FREQ] = std::to_string((uint16_t)param[FREQ]);
         break;
       case 2:
-        fxParamStr[HPF] = std::to_string(fxParam[HPF] * 10);
+        fxParamStr[TYPE] = typeName[fxParam[TYPE]];
         break;
       default:
         fxParamStr[paramNum] = "";
@@ -68,15 +70,16 @@ public:
     switch(count)
     {
       case 0:
-        param[LEVEL] = dbToGain(fxParam[LEVEL]); // LEVEL -20...+20 dB
+        param[LEVEL] = logPot(fxParam[LEVEL], -50.0f, 0.0f);  // LEVEL -50～0 dB
         break;
       case 1:
-        param[LPF] = (float)fxParam[LPF] * 100.0f; // 1次LPF カットオフ周波数 100...9900 Hz
-        lpf1.set(param[LPF]);
+        param[FREQ] = 10.0f * (float)fxParam[FREQ]; // 周波数 20～2000 Hz
+        saw.set(param[FREQ]);
+        tri.set(param[FREQ]);
+        sin.set(param[FREQ]);
         break;
       case 2:
-        param[HPF] = (float)fxParam[HPF] * 10.0f; // 1次HPF カットオフ周波数 10...1000 Hz
-        hpf1.set(param[HPF]);
+        param[TYPE] = (float)fxParam[TYPE]; // TYPE
         break;
       default:
         break;
@@ -90,13 +93,17 @@ public:
     for (uint16_t i = 0; i < BLOCK_SIZE; i++)
     {
       float fxL = xL[i];
-      fxL = lpf1.process(fxL); // 1次LPF
-      fxL = hpf1.process(fxL); // 1次HPF
+
+      if (fxParam[TYPE] == 0) fxL = 2.0f * saw.output() - 1.0f;
+      if (fxParam[TYPE] == 1) fxL = 2.0f * tri.output() - 1.0f;
+      if (fxParam[TYPE] == 2) fxL = sin.output();
+
       fxL = param[LEVEL] * fxL; // LEVEL
+
       xL[i] = bypass.process(xL[i], fxL, fxOn);
     }
   }
 
 };
 
-#endif // FX_FILTER_HPP
+#endif // FX_OSCILLATOR_HPP

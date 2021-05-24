@@ -25,10 +25,6 @@ private:
   lpf2nd lpf2nd1, lpf2nd2;
 
 public:
-  fx_chorus()
-  {
-  }
-
   virtual void init()
   {
     fxName = name;
@@ -111,7 +107,7 @@ public:
         lpf2nd2.set(param[TONE]);
         break;
       case 8:
-        tri1.set(param[RATE]);
+        tri1.set(1.0f / param[RATE]);
         break;
       default:
         break;
@@ -120,19 +116,21 @@ public:
 
   virtual void process(float xL[], float xR[])
   {
-    float fxL[BLOCK_SIZE] = {};
-
     setParam();
 
     for (uint16_t i = 0; i < BLOCK_SIZE; i++)
     {
+      float fxL = xL[i];
+
       float dtime = param[DEPTH] * tri1.output() + 5.0f; // ディレイタイム5~15ms
-      fxL[i] = del1.readLerp(dtime);
-      fxL[i] = lpf2nd1.process(fxL[i]);
-      fxL[i] = lpf2nd2.process(fxL[i]);
-      del1.write(hpf1.process(xL[i]) + param[FBACK] * fxL[i]);
-      fxL[i] = (1.0f - param[MIX]) * xL[i] + param[MIX] * fxL[i];
-      xL[i] = bypass.process(xL[i], fxL[i] * param[LEVEL] * 1.4f, fxOn);
+      fxL = del1.readLerp(dtime);
+      fxL = lpf2nd1.process(fxL);
+      fxL = lpf2nd2.process(fxL);
+      del1.write(hpf1.process(xL[i]) + param[FBACK] * fxL);
+
+      fxL = (1.0f - param[MIX]) * xL[i] + param[MIX] * fxL; // 原音ミックス
+      fxL = param[LEVEL] * 1.4f * fxL; // LEVEL、音量調整
+      xL[i] = bypass.process(xL[i], fxL, fxOn);
     }
   }
 

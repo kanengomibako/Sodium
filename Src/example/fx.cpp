@@ -9,6 +9,7 @@
 #include "fx_bqfilter.hpp"
 #include "fx_overdrive.hpp"
 #include "fx_distortion.hpp"
+#include "fx_oscillator.hpp"
 #include "fx_delay.hpp"
 #include "fx_tremolo.hpp"
 #include "fx_chorus.hpp"
@@ -21,6 +22,7 @@ fx_filter fl1;
 fx_bqfilter bq1;
 fx_overdrive od1;
 fx_distortion ds1;
+fx_oscillator osc;
 fx_delay dd1;
 fx_tremolo tr1;
 fx_chorus ce1;

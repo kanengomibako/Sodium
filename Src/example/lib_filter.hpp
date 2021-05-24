@@ -296,13 +296,13 @@ public:
       setPF(fc, q_bw, gain);
       break;
     case LPF:
-   	  setLPF(fc, q_bw);
+      setLPF(fc, q_bw);
       break;
     case HPF:
-  	  setHPF(fc, q_bw);
+      setHPF(fc, q_bw);
       break;
     case BPF:
-   	  setBPF(fc, q_bw);
+      setBPF(fc, q_bw);
       break;
     case LSF:
       setLSF(fc, q_bw, gain);
@@ -311,10 +311,10 @@ public:
       setHSF(fc, q_bw, gain);
       break;
     case NF:
-   	  setNF(fc, q_bw);
+      setNF(fc, q_bw);
       break;
     case APF:
-  	  setAPF(fc, q_bw);
+      setAPF(fc, q_bw);
       break;
     default:
       a1 = 0.0f;
