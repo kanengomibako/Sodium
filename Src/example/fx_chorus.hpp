@@ -19,8 +19,8 @@ private:
   const uint8_t paramNumMax = 6;
 
   signalSw bypass;
-  triangleWave tri1;
-  delayBuf del1;
+  sineWave sin1;
+  delayBufF del1;
   hpf hpf1;
   lpf2nd lpf2nd1, lpf2nd2;
 
@@ -39,8 +39,8 @@ public:
       else fxParam[i] = fxAllData[fxNum][i];
     }
 
-    del1.set(20.0f); // 最大ディレイタイム設定
-    hpf1.set(100.0f); // ウェット音のローカット設定
+    del1.set(20.0f);  // 最大ディレイタイム設定
+    hpf1.set(100.0f); // ディレイ音のローカット設定
   }
 
   virtual void deinit()
@@ -83,19 +83,19 @@ public:
     switch(count)
     {
       case 0:
-        param[LEVEL] = logPot(fxParam[LEVEL], -20.0f, 20.0f);  // LEVEL -20 ～ 20dB
+        param[LEVEL] = logPot(fxParam[LEVEL], -20.0f, 20.0f); // LEVEL -20 ～ 20dB
         break;
       case 1:
-        param[MIX] = mixPot(fxParam[MIX], -20.0f);  // MIX
+        param[MIX] = mixPot(fxParam[MIX], -20.0f); // MIX
         break;
       case 2:
-        param[FBACK] = (float)fxParam[FBACK] / 100.0f; // Feedback 0～0.99
+        param[FBACK] = (float)fxParam[FBACK] / 100.0f; // Feedback 0～99%
         break;
       case 3:
-        param[RATE] = 0.02f * (105.0f - (float)fxParam[RATE]); // Rate 2s
+        param[RATE] = 0.02f * (105.0f - (float)fxParam[RATE]); // RATE 周期 2.1～0.1 秒
         break;
       case 4:
-        param[DEPTH] = 0.1f * (float)fxParam[DEPTH]; // Depth 10ms
+        param[DEPTH] = 0.05f * (float)fxParam[DEPTH]; // Depth ±5ms
         break;
       case 5:
         param[TONE] = 800.0f * logPot(fxParam[TONE], 0.0f, 20.0f); // HI CUT FREQ 800 ～ 8000 Hz
@@ -107,7 +107,7 @@ public:
         lpf2nd2.set(param[TONE]);
         break;
       case 8:
-        tri1.set(1.0f / param[RATE]);
+        sin1.set(1.0f / param[RATE]);
         break;
       default:
         break;
@@ -120,16 +120,19 @@ public:
 
     for (uint16_t i = 0; i < BLOCK_SIZE; i++)
     {
-      float fxL = xL[i];
-
-      float dtime = param[DEPTH] * tri1.output() + 5.0f; // ディレイタイム5~15ms
-      fxL = del1.readLerp(dtime);
-      fxL = lpf2nd1.process(fxL);
+      float fxL;
+      
+      float dtime = 5.0f + param[DEPTH] * (1.0f + sin1.output()); // ディレイタイム 5～15ms
+      fxL = del1.readLerp(dtime); // ディレイ音読込(線形補間)
+      fxL = lpf2nd1.process(fxL); // ディレイ音のTONE(ハイカット)
       fxL = lpf2nd2.process(fxL);
-      del1.write(hpf1.process(xL[i]) + param[FBACK] * fxL);
 
-      fxL = (1.0f - param[MIX]) * xL[i] + param[MIX] * fxL; // 原音ミックス
-      fxL = param[LEVEL] * 1.4f * fxL; // LEVEL、音量調整
+      // ディレイ音と原音をディレイバッファに書込、原音はローカットして書込
+      del1.write(param[FBACK] * fxL + hpf1.process(xL[i]));
+
+      fxL = (1.0f - param[MIX]) * xL[i] + param[MIX] * fxL; // MIX
+      fxL = 1.4f * param[LEVEL] * fxL; // LEVEL
+
       xL[i] = bypass.process(xL[i], fxL, fxOn);
     }
   }

@@ -87,6 +87,24 @@ void mainInit() // <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<最初に1回の�
   HAL_GPIO_WritePin(LED_BLUE_GPIO_Port, LED_BLUE_Pin, GPIO_PIN_RESET);
 #endif
 
+  // 起動時フットスイッチ、左上スイッチ、右下スイッチを押していた場合、データ全消去
+  if (!HAL_GPIO_ReadPin(SW0_UPPER_L_GPIO_Port, SW0_UPPER_L_Pin) &&
+      !HAL_GPIO_ReadPin(SW3_LOWER_R_GPIO_Port, SW3_LOWER_R_Pin) &&
+      !HAL_GPIO_ReadPin(SW4_FOOT_GPIO_Port, SW4_FOOT_Pin))
+  {
+    ssd1306_SetCursor(0, 0);
+    ssd1306_WriteString("ERASE ALL DATA", Font_7x10, Black);
+    ssd1306_UpdateScreen(&hi2c1);
+    eraseData();
+    HAL_Delay(1000);
+  }
+
+  // 保存済パラメータ読込 エフェクト番号(fxNum)読込
+  loadData();
+
+  // 初期エフェクト読込 ※信号処理が始まる前にメモリ確保
+  fxInit();
+
   // I2SのDMA開始
   HAL_I2S_Transmit_DMA(&hi2s2, (uint16_t*)TxBuffer, BLOCK_SIZE*4);
   HAL_I2S_Receive_DMA(&hi2s3, (uint16_t*)RxBuffer, BLOCK_SIZE*4);
@@ -108,24 +126,6 @@ void mainInit() // <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<最初に1回の�
     HAL_GPIO_WritePin(CODEC_RST_GPIO_Port, CODEC_RST_Pin, GPIO_PIN_SET);
     HAL_Delay(100);
   }
-
-  // 起動時フットスイッチ、左上スイッチ、右下スイッチを押していた場合、データ全消去
-  if (!HAL_GPIO_ReadPin(SW0_UPPER_L_GPIO_Port, SW0_UPPER_L_Pin) &&
-      !HAL_GPIO_ReadPin(SW3_LOWER_R_GPIO_Port, SW3_LOWER_R_Pin) &&
-      !HAL_GPIO_ReadPin(SW4_FOOT_GPIO_Port, SW4_FOOT_Pin))
-  {
-    ssd1306_SetCursor(0, 0);
-    ssd1306_WriteString("ERASE ALL DATA", Font_7x10, Black);
-    ssd1306_UpdateScreen(&hi2c1);
-    eraseData();
-    HAL_Delay(1000);
-  }
-
-  // 保存済パラメータ読込 エフェクト番号(fxNum)読込
-  loadData();
-
-  // 初期エフェクト読込
-  fxInit();
 
 }
 

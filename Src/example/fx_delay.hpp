@@ -11,10 +11,10 @@ class fx_delay : public fx_base
 private:
   const string name = "DELAY";
   const uint16_t color = COLOR_RB; // 赤青
-  const string paramName[20] = {"TIM", "LEVEL", "F.BACK", "TONE", "OUTPUT", "DIV"};
-  enum paramName {DTIME, ELEVEL, FBACK, TONE, OUTPUT, TAPDIV};
+  const string paramName[20] = {"TIM", "E.LV", "F.BACK", "TONE", "TRAIL", "DIV"};
+  enum paramName {DTIME, ELEVEL, FBACK, TONE, TRAIL, TAPDIV};
   float param[20] = {1, 1, 1, 1, 1, 1};
-  const int16_t paramMax[20] = {1500,100, 99,100,100,  5};
+  const int16_t paramMax[20] = {1500,100, 99,100,  1,  5};
   const int16_t paramMin[20] = {  10,  0,  0,  0,  0,  0};
   const uint8_t paramNumMax = 6;
 
@@ -69,7 +69,8 @@ public:
         fxParamStr[TONE] = std::to_string(fxParam[TONE]);
         break;
       case 4:
-        fxParamStr[OUTPUT] = std::to_string(fxParam[OUTPUT]);
+        if (fxParam[TRAIL]) fxParamStr[TRAIL] = "ON";
+        else fxParamStr[TRAIL] = "OFF";
         break;
       case 5:
         fxParamStr[TAPDIV] = tapDivStr[fxParam[TAPDIV]];
@@ -88,27 +89,23 @@ public:
     switch(count)
     {
       case 0:
-        if (divTapTime > 10.0f && divTapTime < maxDelayTime)
+        if (divTapTime > 10.0f && divTapTime < maxDelayTime) // タップテンポ設定時
         {
-          param[DTIME] = divTapTime;
-          fxParam[DTIME] = param[DTIME];
+          fxParam[DTIME] = (int16_t)divTapTime;
         }
-        else
-        {
-          param[DTIME] = (float)fxParam[DTIME]; // DELAYTIME 10 ～ 1500 ms
-        }
+        param[DTIME] = (float)fxParam[DTIME]; // DELAYTIME 10 ～ 1500 ms
         break;
       case 1:
-        param[ELEVEL] = logPot(fxParam[ELEVEL], -20.0f, 20.0f);  // EFFECT LEVEL -20 ～ +20dB
+        param[ELEVEL] = logPot(fxParam[ELEVEL], -20.0f, 20.0f); // EFFECT LEVEL -20 ～ +20dB
         break;
       case 2:
-        param[FBACK] = (float)fxParam[FBACK] / 100.0f; // Feedback 0 ～ 0.99 %
+        param[FBACK] = (float)fxParam[FBACK] / 100.0f; // Feedback 0 ～ 99 %
         break;
       case 3:
         param[TONE] = 800.0f * logPot(fxParam[TONE], 0.0f, 20.0f); // HI CUT FREQ 800 ～ 8000 Hz
         break;
       case 4:
-        param[OUTPUT] = logPot(fxParam[OUTPUT], -20.0f, 20.0f);  // OUTPUT LEVEL -20 ～ +20dB
+        param[TRAIL] = (float)fxParam[TRAIL]; // TRAIL ディレイ音を残す機能 ON OFF
         break;
       case 5:
         lpf2ndTone.set(param[TONE]);
@@ -128,18 +125,17 @@ public:
 
     for (uint16_t i = 0; i < BLOCK_SIZE; i++)
     {
-      float fxL = xL[i];
+      float fxL;
 
-      fxL = del1.read(param[DTIME]); // ディレイ音読み込み
+      fxL = del1.read(param[DTIME]); // ディレイ音読込
       fxL = lpf2ndTone.process(fxL); // ディレイ音のTONE（ハイカット）
 
-      // ディレイ音と原音をディレイバッファに書き込み、原音はエフェクトオン時のみ書き込む
-      del1.write(bypassIn.process(0.0f, xL[i], fxOn) + param[FBACK] * fxL);
+      // ディレイ音と原音をディレイバッファに書込、原音はエフェクトオン時のみ書込
+      del1.write(param[FBACK] * fxL + bypassIn.process(0.0f, xL[i], fxOn));
 
-      fxL = param[ELEVEL] * fxL;           // ディレイ音レベル
-      fxL = param[OUTPUT] * (xL[i] + fxL); // マスターボリューム
+      fxL = param[ELEVEL] * fxL; // ディレイ音レベル
 
-      xL[i] = bypassOut.process(xL[i], fxL, fxOn);
+      xL[i] = xL[i] + bypassOut.process(param[TRAIL] * fxL, fxL, fxOn); // TRAIL ON時ディレイ音残す
     }
   }
 };

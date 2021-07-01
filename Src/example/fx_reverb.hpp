@@ -4,7 +4,7 @@
 #include "common.h"
 #include "lib_calc.hpp"
 #include "lib_filter.hpp"
-#include "lib_delayPrimeNum.hpp"
+#include "lib_delay.hpp"
 
 class fx_reverb : public fx_base
 {
@@ -18,10 +18,11 @@ private:
   const int16_t paramMin[20] = {  0,  0,  0,  0,  0,  0};
   const uint8_t paramNumMax = 6;
 
-  const uint8_t dt[10] = {44, 26, 19, 16, 8, 4, 59, 69, 75, 86}; // ディレイタイム配列
+  // ディレイタイム配列
+  const float dt[10] = {43.5337, 25.796, 19.392, 16.364, 7.645, 4.2546, 58.6435, 69.4325, 74.5234, 86.1244};
 
   signalSw bypassIn, bypassOutL, bypassOutR;
-  delayBufPrimeNum del[10];
+  delayBufF del[10];
   lpf lpfIn, lpfFB[4];
   hpf hpfOutL, hpfOutR;
 
@@ -40,7 +41,7 @@ public:
       else fxParam[i] = fxAllData[fxNum][i];
     }
 
-    for (int i = 0; i < 10; i++) del[i].set(dt[i]); // 最大ディレイタイム設定
+    for (int i = 0; i < 10; i++) del[i].set(dt[i]); // ディレイタイム設定
   }
 
   virtual void deinit()
@@ -143,38 +144,38 @@ public:
       // Early Reflection
 
       del[0].write(fxL);
-      ap = fxL + del[0].readFixed();
-      am = fxL - del[0].readFixed();
+      ap = fxL + del[0].readLerp(dt[0]);
+      am = fxL - del[0].readLerp(dt[0]);
       del[1].write(am);
-      bp = ap + del[1].readFixed();
-      bm = ap - del[1].readFixed();
+      bp = ap + del[1].readLerp(dt[1]);
+      bm = ap - del[1].readLerp(dt[1]);
       del[2].write(bm);
-      cp = bp + del[2].readFixed();
-      cm = bp - del[2].readFixed();
+      cp = bp + del[2].readLerp(dt[2]);
+      cm = bp - del[2].readLerp(dt[2]);
       del[3].write(cm);
-      dp = cp + del[3].readFixed();
-      dm = cp - del[3].readFixed();
+      dp = cp + del[3].readLerp(dt[3]);
+      dm = cp - del[3].readLerp(dt[3]);
       del[4].write(dm);
-      ep = dp + del[4].readFixed();
-      em = dp - del[4].readFixed();
+      ep = dp + del[4].readLerp(dt[4]);
+      em = dp - del[4].readLerp(dt[4]);
       del[5].write(em);
 
       // Late Reflection & High Freq Dumping
 
-      hd = del[6].readFixed();
+      hd = del[6].readLerp(dt[6]);
       hd = lpfFB[0].process(hd);
 
-      id = del[7].readFixed();
+      id = del[7].readLerp(dt[7]);
       id = lpfFB[1].process(id);
 
-      jd = del[8].readFixed();
+      jd = del[8].readLerp(dt[8]);
       jd = lpfFB[2].process(jd);
 
-      kd = del[9].readFixed();
+      kd = del[9].readLerp(dt[9]);
       kd = lpfFB[3].process(kd);
 
       outL = ep + hd * param[FBACK];
-      outR = del[5].readFixed() + id * param[FBACK];
+      outR = del[5].readLerp(dt[5]) + id * param[FBACK];
 
       fp = outL + outR;
       fm = outL - outR;

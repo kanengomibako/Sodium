@@ -70,7 +70,7 @@ public:
         param[LEVEL] = logPot(fxParam[LEVEL], -20.0f, 20.0f);  // LEVEL -20～20 dB
         break;
       case 1:
-        param[RATE] = 0.02f * (105.0f - (float)fxParam[RATE]); // RATE 周期 2～0.1 秒
+        param[RATE] = 0.02f * (105.0f - (float)fxParam[RATE]); // RATE 周期 2.1～0.1 秒
         break;
       case 2:
         param[STAGE] = 0.1f + (float)fxParam[STAGE] * 2.0f; // STAGE 2～12 後で整数へ変換
