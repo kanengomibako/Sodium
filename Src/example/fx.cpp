@@ -15,6 +15,7 @@
 #include "fx_chorus.hpp"
 #include "fx_phaser.hpp"
 #include "fx_reverb.hpp"
+#include "fx_autowah.hpp"
 
 // 各エフェクト グローバルインスタンス生成
 fx_volume vo1;
@@ -28,10 +29,11 @@ fx_tremolo tr1;
 fx_chorus ce1;
 fx_phaser ph1;
 fx_reverb rv1;
+fx_autowah aw1;
 
 // 各エフェクト用ポインタ配列を生成(&を付ける)
 // 使用するエフェクトを記載、順番入れ替え可
-fx_base* effect[] = {&od1, &ds1, &dd1, &tr1, &ce1, &ph1, &rv1};
+fx_base* effect[] = {&od1, &ds1, &dd1, &tr1, &ce1, &ph1, &rv1, &aw1};
 
 const uint8_t fxNumMax = sizeof(effect) / sizeof(effect[0]); // エフェクト最大数を自動計算
 

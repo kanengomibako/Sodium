@@ -121,7 +121,7 @@ public:
     for (uint16_t i = 0; i < BLOCK_SIZE; i++)
     {
       float fxL;
-      
+
       float dtime = 5.0f + param[DEPTH] * (1.0f + sin1.output()); // ディレイタイム 5～15ms
       fxL = del1.readLerp(dtime); // ディレイ音読込(線形補間)
       fxL = lpf2nd1.process(fxL); // ディレイ音のTONE(ハイカット)

@@ -7,8 +7,8 @@ using std::string;
 
 /* 各定数設定 --------------------------*/
 
-// ペダル名称表示
-#define PEDAL_NAME "Sodium v1.4"
+// ペダル名称表示          v1.5 2021.10.07
+#define PEDAL_NAME "Sodium v1.5"
 
 // ブロックサイズ まとめて処理を行う数
 #define BLOCK_SIZE 16
@@ -86,7 +86,7 @@ extern float tapTime;
 #define COLOR_BG  0b0000011111111111; // 青緑
 #define COLOR_RB  0b1111100000011111; // 赤青（紫）
 #define COLOR_R   0b1111100000000000; // 赤
-#define COLOR_G   0b0000000000011111; // 緑
+#define COLOR_G   0b0000011111100000; // 緑
 #define COLOR_B   0b0000000000011111; // 青
 
 #endif // COMMON_H
