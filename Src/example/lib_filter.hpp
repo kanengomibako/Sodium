@@ -10,18 +10,26 @@ inline float omega(float fc)
   return 2.0f * PI * fc / SAMPLING_FREQ;
 }
 
-/* 1次LPF、HPF、APF用の係数計算、50～10kHzでの近似曲線 -----------------------------*/
+/* 1次LPF、HPF、APF用の係数計算 tanを近似 誤差10kHz:-1% 14kHz:-2% 17kHz:-3% -------*/
 inline float lpfCoef(float fc)
 {
-  float w = omega(fc);
-  return 0.99983075f - 0.99678388f * w + 0.49528899f *w*w - 0.10168296f *w*w*w;
+  // 近似でない計算式(不使用)
+  //float w = PI * fc / SAMPLING_FREQ; // 2 * PI * fc / fs の2分の1を計算
+  //return (1 - tanf(w)) / (1 + tanf(w));
+
+  float w = 0.25f * PI * fc / SAMPLING_FREQ; // 2 * PI * fc / fs の8分の1を計算
+  float w2 = w * w;
+  float w3 = w2 * w;
+  float w4 = w2 * w2;
+  return (w4 + 4.0f * w3 - 6.0f * w2 - 4.0f * w + 1.0f) /
+         (w4 - 4.0f * w3 - 6.0f * w2 + 4.0f * w + 1.0f);
 }
 
 /* 1次 Low Pass Filter ----------------------------------------------------------*/
 class lpf
 {
 private:
-  float b0, a1, y1 = 0;
+  float b0, a1, x1 = 0, y1 = 0;
 
 public:
   lpf()
@@ -37,12 +45,13 @@ public:
   void set(float fc)
   {
     a1 = lpfCoef(fc);
-    b0 = 1.0f - a1;
+    b0 = 0.5f * (1.0f - a1);
   }
 
   float process(float x)
   {
-    float y = b0 * x + a1 * y1;
+    float y = b0 * x + b0 * x1 + a1 * y1; // b1 = b0
+    x1 = x;
     y1 = y;
     return y;
   }
@@ -74,7 +83,7 @@ public:
 
   float process(float x)
   {
-    float y = b0 * x - b0 * x1 + a1 * y1;
+    float y = b0 * x - b0 * x1 + a1 * y1; // b1 = -b0
     x1 = x;
     y1 = y;
     return y;
@@ -114,11 +123,11 @@ public:
 
 };
 
-/* 2次 Low Pass Filter ----------------------------------------------------------*/
+/* 2次 Low Pass Filter (1次LPFを2回かけたもの)-------------------------------------*/
 class lpf2nd
 {
 private:
-  float b, a, y1 = 0, y2 = 0;
+  float c, a, x1 = 0, x2 = 0, y1 = 0, y2 = 0;
 
 public:
   lpf2nd()
@@ -134,12 +143,14 @@ public:
   void set(float fc)
   {
     a = lpfCoef(fc);
-    b = 1.0f - a;
+    c = 0.5f * (1.0f - a);
   }
 
   float process(float x)
   {
-    float y = b * b * x + 2.0f * a * y1 - a * a * y2;
+    float y = c * c * (x + 2.0f * x1 + x2) + 2.0f * a * y1 - a * a * y2;
+    x2 = x1;
+    x1 = x;
     y2 = y1;
     y1 = y;
     return y;
@@ -147,7 +158,7 @@ public:
 
 };
 
-/* 2次 High Pass Filter ----------------------------------------------------------*/
+/* 2次 High Pass Filter (1次HPFを2回かけたもの)-------------------------------------*/
 class hpf2nd
 {
 private:
@@ -172,7 +183,7 @@ public:
 
   float process(float x)
   {
-    float y = c * c * (x - 2.0f * x1 + x2) + 2.0 * a * y1 - a * a * y2;
+    float y = c * c * (x - 2.0f * x1 + x2) + 2.0f * a * y1 - a * a * y2;
     x2 = x1;
     x1 = x;
     y2 = y1;
