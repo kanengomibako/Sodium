@@ -2,6 +2,8 @@
 ### STM32 Programmable Digital Effects Pedal
 STM32マイコンを搭載した、プログラミング可能なデジタルエフェクターです。C言語またはC++で開発を行います。もちろんプログラム書き込み後は単体のエフェクターとして動作可能です。
 
+![Sodium_pic](Docs/img/000_000.jpg)
+
 
 
 ### 別途必要なもの
