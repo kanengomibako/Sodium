@@ -37,6 +37,12 @@ inline float mixPot(uint16_t pot, float dBmin)
   else                return 1.0f;
 }
 
+// 線形補間 割合tは0～1の間
+inline float lerp(float y1, float y2, float t)
+{
+  return (1.0f - t) * y1 + t * y2;
+}
+
 /* ポップノイズ対策のため、0.01ずつ音量変更しスイッチ操作する（エフェクトバイパス等）--------------*/
 class signalSw
 {
