@@ -12,8 +12,9 @@ extern I2C_HandleTypeDef hi2c1;
 extern I2S_HandleTypeDef hi2s2;
 extern I2S_HandleTypeDef hi2s3;
 
-int32_t RxBuffer[BLOCK_SIZE*4] = {}; // 音声信号受信バッファ配列 Lch前半 Lch後半 Rch前半 Rch後半
-int32_t TxBuffer[BLOCK_SIZE*4] = {}; // 音声信号送信バッファ配列
+#define __ATTR_DTCMRAM  __attribute__ ((section(".DTCMRAM"))) __attribute__ ((aligned (4)))
+int32_t RxBuffer[BLOCK_SIZE*4] __ATTR_DTCMRAM; // 音声信号受信バッファ配列 Lch前半 Lch後半 Rch前半 Rch後半
+int32_t TxBuffer[BLOCK_SIZE*4] __ATTR_DTCMRAM; // 音声信号送信バッファ配列
 
 uint32_t callbackCount = 0; // I2Sの割り込みごとにカウントアップ タイマとして利用
 extern uint32_t cpuUsageCycleMax[]; // CPU使用サイクル数

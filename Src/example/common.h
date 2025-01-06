@@ -7,8 +7,8 @@ using std::string;
 
 /* 各定数設定 --------------------------*/
 
-// ペダル名称表示          v1.6 2021.10.25
-#define PEDAL_NAME "Sodium v1.6"
+// ペダル名称表示          v1.8 2025.01.06
+#define PEDAL_NAME "Sodium v1.8"
 
 // ブロックサイズ まとめて処理を行う数
 #define BLOCK_SIZE 16
