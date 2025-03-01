@@ -25,7 +25,7 @@ private:
   float downArray[1*BLOCK_SIZE]; // ダウンサンプリング用配列
 
 public:
-  virtual void init()
+  void init() override
   {
     fxName = name;
     fxColor = color;
@@ -41,11 +41,11 @@ public:
 
   }
 
-  virtual void deinit()
+  void deinit() override
   {
   }
 
-  virtual void setParamStr(uint8_t paramNum)
+  void setParamStr(uint8_t paramNum) override
   {
     switch(paramNum)
     {
@@ -70,7 +70,7 @@ public:
     }
   }
 
-  virtual void setParam()
+  void setParam() override
   {
     static uint8_t count = 0;
     count = (count + 1) % 10; // 負荷軽減のためパラメータ計算を分散させる
@@ -91,20 +91,17 @@ public:
       case 4:
         param[DN_LPF] = 1000.0f * (float)fxParam[DN_LPF]; // ダウンサンプリング時LPFカットオフ周波数 1k～40kHz（0でオフ）
         break;
-      case 5:
-        up.set(fxParam[UP], param[UP_LPF]);
-        break;
-      case 6:
-        down.set(fxParam[UP], param[DN_LPF]);
-        break;
       default:
         break;
     }
   }
 
-  virtual void process(float xL[], float xR[])
+  void process(float xL[], float xR[]) override
   {
     setParam();
+    up.set(fxParam[UP], param[UP_LPF]);
+    down.set(fxParam[UP], param[DN_LPF]);
+
     float fxL;
 
     for (uint16_t i = 0; i < BLOCK_SIZE; i++)
